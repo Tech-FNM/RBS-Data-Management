@@ -333,6 +333,7 @@ const ProjectList = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', budget: 0 });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
     const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
@@ -365,16 +366,21 @@ const ProjectList = () => {
   };
 
   const handleDeleteProject = async (id: string) => {
-    console.log('Deleting project:', id);
-    if (confirm('Are you sure you want to delete this project? This will also delete all associated employees, salaries, and expenses.')) {
-      const { error } = await supabase.from('projects').delete().eq('id', id);
+    console.log('handleDeleteProject called for:', id);
+    try {
+      const { error, data } = await supabase.from('projects').delete().eq('id', id);
+      console.log('Supabase delete response:', { error, data });
       if (error) {
         console.error('Delete project error:', error);
         alert('Error deleting project: ' + error.message);
       } else {
         console.log('Project deleted successfully');
+        setConfirmDeleteId(null);
         fetchProjects();
       }
+    } catch (err) {
+      console.error('Unexpected delete error:', err);
+      alert('An unexpected error occurred during deletion.');
     }
   };
 
@@ -400,12 +406,29 @@ const ProjectList = () => {
                 <Link to={`/projects/${project.id}`} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
                   <Edit size={18} />
                 </Link>
-                <button 
-                  onClick={() => handleDeleteProject(project.id)}
-                  className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                >
-                  <Trash2 size={18} />
-                </button>
+                {confirmDeleteId === project.id ? (
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => handleDeleteProject(project.id)}
+                      className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded hover:bg-red-700"
+                    >
+                      CONFIRM
+                    </button>
+                    <button 
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded hover:bg-slate-300"
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                ) : (
+                  <button 
+                    onClick={() => setConfirmDeleteId(project.id)}
+                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
               </div>
             </div>
             <div className="space-y-2">
@@ -491,6 +514,7 @@ const ProjectDetail = () => {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [docs, setDocs] = useState<ProjectDoc[]>([]);
+  const [isConfirmingComplete, setIsConfirmingComplete] = useState(false);
 
   const fetchData = async () => {
     if (!id) return;
@@ -518,16 +542,20 @@ const ProjectDetail = () => {
   }, [id]);
 
   const handleMarkComplete = async () => {
-    console.log('Marking project as complete:', id);
-    if (project && confirm('Mark this project as complete?')) {
-      const { error } = await supabase.from('projects').update({ status: 'completed' }).eq('id', id);
+    console.log('handleMarkComplete called for:', id);
+    try {
+      const { error, data } = await supabase.from('projects').update({ status: 'completed' }).eq('id', id);
+      console.log('Supabase update response:', { error, data });
       if (error) {
         console.error('Mark complete error:', error);
         alert('Error marking complete: ' + error.message);
       } else {
         console.log('Project marked as complete successfully');
+        setIsConfirmingComplete(false);
         fetchData();
       }
+    } catch (err) {
+      console.error('Unexpected update error:', err);
     }
   };
 
@@ -606,13 +634,30 @@ const ProjectDetail = () => {
             Export Data
           </button>
           {project.status === 'active' && (
-            <button 
-              onClick={handleMarkComplete}
-              className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium flex items-center gap-2 hover:bg-emerald-700 transition-colors"
-            >
-              <CheckCircle size={18} />
-              Mark Complete
-            </button>
+            isConfirmingComplete ? (
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleMarkComplete}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition-colors"
+                >
+                  CONFIRM COMPLETE
+                </button>
+                <button 
+                  onClick={() => setIsConfirmingComplete(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-200 text-slate-600 font-medium hover:bg-slate-300 transition-colors"
+                >
+                  CANCEL
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setIsConfirmingComplete(true)}
+                className="px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium flex items-center gap-2 hover:bg-emerald-700 transition-colors"
+              >
+                <CheckCircle size={18} />
+                Mark Complete
+              </button>
+            )
           )}
         </div>
       </div>
@@ -654,6 +699,7 @@ const ProjectDetail = () => {
 
 const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: string, employees: Employee[], onUpdate: () => void, salaries: Salary[] }) => {
   const [name, setName] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -663,16 +709,20 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
   };
 
   const handleDelete = async (id: string) => {
-    console.log('Deleting employee:', id);
-    if (confirm('Delete this employee?')) {
-      const { error } = await supabase.from('employees').delete().eq('id', id);
+    console.log('handleDelete employee called for:', id);
+    try {
+      const { error, data } = await supabase.from('employees').delete().eq('id', id);
+      console.log('Supabase employee delete response:', { error, data });
       if (error) {
         console.error('Delete employee error:', error);
         alert('Error deleting employee: ' + error.message);
       } else {
         console.log('Employee deleted successfully');
+        setConfirmDeleteId(null);
         onUpdate();
       }
+    } catch (err) {
+      console.error('Unexpected employee delete error:', err);
     }
   };
 
@@ -709,9 +759,26 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
                   <td className="py-4 font-medium">{emp.name}</td>
                   <td className="py-4">PKR {totalPaid.toLocaleString()}</td>
                   <td className="py-4 text-right">
-                    <button onClick={() => handleDelete(emp.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                      <Trash2 size={18} />
-                    </button>
+                    {confirmDeleteId === emp.id ? (
+                      <div className="flex gap-1 justify-end">
+                        <button 
+                          onClick={() => handleDelete(emp.id)}
+                          className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                        >
+                          CONFIRM
+                        </button>
+                        <button 
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(emp.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               );
@@ -725,6 +792,7 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
 
 const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], onUpdate: () => void, salaries: Salary[] }) => {
   const [form, setForm] = useState({ employee_id: '', amount: 0, date: new Date().toISOString().split('T')[0], type: 'daily' as 'advance' | 'daily' });
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -738,16 +806,20 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
   };
 
   const handleDelete = async (id: string) => {
-    console.log('Deleting salary:', id);
-    if (confirm('Delete this salary record?')) {
-      const { error } = await supabase.from('salaries').delete().eq('id', id);
+    console.log('handleDelete salary called for:', id);
+    try {
+      const { error, data } = await supabase.from('salaries').delete().eq('id', id);
+      console.log('Supabase salary delete response:', { error, data });
       if (error) {
         console.error('Delete salary error:', error);
         alert('Error deleting salary: ' + error.message);
       } else {
         console.log('Salary deleted successfully');
+        setConfirmDeleteId(null);
         onUpdate();
       }
+    } catch (err) {
+      console.error('Unexpected salary delete error:', err);
     }
   };
 
@@ -817,9 +889,26 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
                   </span>
                 </td>
                 <td className="py-4 text-right">
-                  <button onClick={() => handleDelete(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                    <Trash2 size={18} />
-                  </button>
+                  {confirmDeleteId === s.id ? (
+                    <div className="flex gap-1 justify-end">
+                      <button 
+                        onClick={() => handleDelete(s.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
+                      </button>
+                      <button 
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -833,6 +922,7 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
 const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expenses: Expense[], onUpdate: () => void }) => {
   const [form, setForm] = useState({ expense_name: '', amount: 0, date: new Date().toISOString().split('T')[0], receipt_url: '' });
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -874,16 +964,20 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
   };
 
   const handleDelete = async (id: string) => {
-    console.log('Deleting expense:', id);
-    if (confirm('Delete this expense?')) {
-      const { error } = await supabase.from('expenses').delete().eq('id', id);
+    console.log('handleDelete expense called for:', id);
+    try {
+      const { error, data } = await supabase.from('expenses').delete().eq('id', id);
+      console.log('Supabase expense delete response:', { error, data });
       if (error) {
         console.error('Delete expense error:', error);
         alert('Error deleting expense: ' + error.message);
       } else {
         console.log('Expense deleted successfully');
+        setConfirmDeleteId(null);
         onUpdate();
       }
+    } catch (err) {
+      console.error('Unexpected expense delete error:', err);
     }
   };
 
@@ -960,9 +1054,26 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
                   ) : 'N/A'}
                 </td>
                 <td className="py-4 text-right">
-                  <button onClick={() => handleDelete(e.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                    <Trash2 size={18} />
-                  </button>
+                  {confirmDeleteId === e.id ? (
+                    <div className="flex gap-1 justify-end">
+                      <button 
+                        onClick={() => handleDelete(e.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
+                      </button>
+                      <button 
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(e.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -1004,6 +1115,7 @@ const HistoryTab = ({ reminders }: { reminders: Reminder[] }) => {
 const DocumentTab = ({ projectId, docs, onUpdate }: { projectId: string, docs: ProjectDoc[], onUpdate: () => void }) => {
   const [form, setForm] = useState({ name: '', url: '' });
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1045,13 +1157,20 @@ const DocumentTab = ({ projectId, docs, onUpdate }: { projectId: string, docs: P
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this document?')) {
-      const { error } = await supabase.from('documents').delete().eq('id', id);
+    console.log('handleDelete document called for:', id);
+    try {
+      const { error, data } = await supabase.from('documents').delete().eq('id', id);
+      console.log('Supabase document delete response:', { error, data });
       if (error) {
+        console.error('Delete document error:', error);
         alert('Error deleting document: ' + error.message);
       } else {
+        console.log('Document deleted successfully');
+        setConfirmDeleteId(null);
         onUpdate();
       }
+    } catch (err) {
+      console.error('Unexpected document delete error:', err);
     }
   };
 
@@ -1096,9 +1215,26 @@ const DocumentTab = ({ projectId, docs, onUpdate }: { projectId: string, docs: P
               <a href={doc.url} target="_blank" rel="noreferrer" className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg">
                 <Download size={18} />
               </a>
-              <button onClick={() => handleDelete(doc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                <Trash2 size={18} />
-              </button>
+              {confirmDeleteId === doc.id ? (
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => handleDelete(doc.id)}
+                    className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                  >
+                    CONFIRM
+                  </button>
+                  <button 
+                    onClick={() => setConfirmDeleteId(null)}
+                    className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDeleteId(doc.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                  <Trash2 size={18} />
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -1112,6 +1248,7 @@ const Reminders = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [form, setForm] = useState({ project_id: '', person_name: '', amount: 0, date: new Date().toISOString().split('T')[0], document_url: '' });
   const [isUploading, setIsUploading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchData = async () => {
     const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('date', { ascending: true });
@@ -1176,13 +1313,20 @@ const Reminders = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Delete this reminder?')) {
-      const { error } = await supabase.from('reminders').delete().eq('id', id);
+    console.log('handleDelete reminder called for:', id);
+    try {
+      const { error, data } = await supabase.from('reminders').delete().eq('id', id);
+      console.log('Supabase reminder delete response:', { error, data });
       if (error) {
+        console.error('Delete reminder error:', error);
         alert('Error deleting reminder: ' + error.message);
       } else {
+        console.log('Reminder deleted successfully');
+        setConfirmDeleteId(null);
         fetchData();
       }
+    } catch (err) {
+      console.error('Unexpected reminder delete error:', err);
     }
   };
 
@@ -1278,13 +1422,30 @@ const Reminders = () => {
                   >
                     <CheckCircle size={20} />
                   </button>
-                  <button 
-                    onClick={() => handleDelete(r.id)}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Delete"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  {confirmDeleteId === r.id ? (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleDelete(r.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
+                      </button>
+                      <button 
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setConfirmDeleteId(r.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
