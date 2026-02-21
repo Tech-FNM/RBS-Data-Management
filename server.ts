@@ -109,6 +109,16 @@ async function setupServer() {
     }
   });
 
+  // Config Check Endpoint
+  app.get("/api/config-check", (req, res) => {
+    res.json({
+      hasEmailUser: !!process.env.EMAIL_USER,
+      hasEmailPass: !!process.env.EMAIL_PASS,
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    });
+  });
+
   // Manual Trigger for testing
   app.post("/api/test-email", async (req, res) => {
     console.log("Test email requested...");

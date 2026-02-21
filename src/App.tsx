@@ -1271,6 +1271,7 @@ const Reminders = () => {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
   const [isSendingReminders, setIsSendingReminders] = useState(false);
+  const [isCheckingConfig, setIsCheckingConfig] = useState(false);
 
   const fetchData = async () => {
     const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('date', { ascending: true });
@@ -1398,6 +1399,25 @@ const Reminders = () => {
     }
   };
 
+  const handleCheckConfig = async () => {
+    setIsCheckingConfig(true);
+    try {
+      const response = await fetch('/api/config-check');
+      const data = await response.json();
+      const status = [
+        `Email User: ${data.hasEmailUser ? '✅ Found' : '❌ Missing'}`,
+        `Email Pass: ${data.hasEmailPass ? '✅ Found' : '❌ Missing'}`,
+        `Supabase URL: ${data.hasSupabaseUrl ? '✅ Found' : '❌ Missing'}`,
+        `Supabase Key: ${data.hasSupabaseKey ? '✅ Found' : '❌ Missing'}`,
+      ].join('\n');
+      alert('Server Configuration Status:\n\n' + status);
+    } catch (error: any) {
+      alert('Failed to check config: ' + error.message);
+    } finally {
+      setIsCheckingConfig(false);
+    }
+  };
+
   const pendingReminders = reminders.filter(r => r.status === 'pending');
   const receivedReminders = reminders.filter(r => r.status === 'received');
 
@@ -1424,6 +1444,14 @@ const Reminders = () => {
           >
             <LayoutDashboard size={16} />
             {isTestingEmail ? 'Testing...' : 'Test Setup'}
+          </button>
+          <button
+            onClick={handleCheckConfig}
+            disabled={isCheckingConfig}
+            className="flex-1 sm:flex-none px-4 py-2 bg-slate-800 text-white rounded-xl text-sm font-medium hover:bg-slate-900 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Edit size={16} />
+            {isCheckingConfig ? 'Checking...' : 'Check Config'}
           </button>
         </div>
       </header>
