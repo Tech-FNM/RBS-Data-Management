@@ -54,7 +54,7 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
     <>
       <button 
         onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md"
+        className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-md border border-slate-200"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
@@ -728,7 +728,7 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
 
   return (
     <div className="space-y-6">
-      <form onSubmit={handleAdd} className="flex gap-4">
+      <form onSubmit={handleAdd} className="flex flex-col md:flex-row gap-4">
         <input
           type="text"
           value={name}
@@ -737,7 +737,7 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
           className="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
           required
         />
-        <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
+        <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors whitespace-nowrap">
           Add Employee
         </button>
       </form>
@@ -825,7 +825,7 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
 
   return (
     <div className="space-y-8">
-      <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-6 rounded-2xl">
+      <form onSubmit={handleAdd} className="flex flex-col md:grid md:grid-cols-4 gap-4 bg-slate-50 p-6 rounded-2xl">
         <select
           value={form.employee_id}
           onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
@@ -983,7 +983,7 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
 
   return (
     <div className="space-y-8">
-      <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl">
+      <form onSubmit={handleAdd} className="flex flex-col md:grid md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl">
         <input
           type="text"
           value={form.expense_name}
@@ -1388,7 +1388,7 @@ const Reminders = () => {
         />
         <input
           type="number"
-          value={form.amount}
+          value={form.amount === 0 ? '' : form.amount}
           onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
           placeholder="Amount"
           className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
@@ -1674,9 +1674,9 @@ export default function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 lg:pl-64">
+      <div className="min-h-screen bg-slate-50 lg:pl-64 transition-all">
         <Sidebar onLogout={handleLogout} />
-        <main className="p-4 md:p-8 max-w-7xl mx-auto">
+        <main className="p-4 md:p-8 pt-16 lg:pt-8 max-w-7xl mx-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects" element={<ProjectList />} />

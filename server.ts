@@ -17,8 +17,9 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL ||
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-async function startServer() {
-  const app = express();
+const app = express();
+
+async function setupServer() {
   const PORT = 3000;
 
   app.use(express.json());
@@ -96,17 +97,36 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
+  // Vercel Cron Endpoint
+  app.get("/api/cron/reminders", async (req, res) => {
+    console.log("Vercel Cron triggered...");
+    try {
+      await sendReminders();
+      res.json({ success: true, message: "Cron reminders processed" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Manual Trigger for testing
   app.post("/api/test-email", async (req, res) => {
+    console.log("Test email requested...");
     try {
       const transporter = getTransporter();
+      const user = process.env.EMAIL_USER;
+      const pass = process.env.EMAIL_PASS;
+
+      if (!user || !pass) {
+        throw new Error("EMAIL_USER or EMAIL_PASS environment variables are missing.");
+      }
+
       await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: process.env.EMAIL_USER,
+        from: `"RBS Test" <${user}>`,
+        to: user,
         subject: "RBS Panel - Test Email",
         text: "If you received this, your email configuration is working correctly!",
       });
-      res.json({ success: true, message: "Test email sent successfully to " + process.env.EMAIL_USER });
+      res.json({ success: true, message: "Test email sent successfully to " + user });
     } catch (error: any) {
       console.error("Test Email Error:", error);
       res.status(500).json({ success: false, error: error.message });
@@ -137,9 +157,13 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  // Only listen if not on Vercel
+  if (process.env.VERCEL !== '1') {
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
 }
 
-startServer();
+setupServer();
+export default app;
