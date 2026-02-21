@@ -52,23 +52,43 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
 
   return (
     <>
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="lg:hidden fixed top-4 right-4 z-50 p-2 bg-white rounded-md shadow-md border border-slate-200"
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
+      {/* Mobile/Tablet Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
+        <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <Briefcase className="text-indigo-600" size={20} />
+          RBS Panel
+        </h1>
+        <button 
+          onClick={() => setIsOpen(!isOpen)}
+          className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+        >
+          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </header>
 
+      {/* Mobile Menu Overlay */}
+      {isOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Navigation Drawer */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0",
-        isOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed inset-y-0 right-0 z-50 w-64 bg-white border-l border-slate-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:left-0 lg:right-auto lg:border-r lg:border-l-0",
+        isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
-          <div className="p-6">
+          <div className="p-6 hidden lg:block">
             <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Briefcase className="text-indigo-600" />
               RBS Panel
             </h1>
+          </div>
+          
+          <div className="p-6 lg:hidden border-b border-slate-100 mb-4">
+            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">Menu</h2>
           </div>
 
           <nav className="flex-1 px-4 space-y-1">
@@ -1250,6 +1270,7 @@ const Reminders = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
 
   const fetchData = async () => {
     const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('date', { ascending: true });
@@ -1335,11 +1356,17 @@ const Reminders = () => {
     setIsTestingEmail(true);
     try {
       const response = await fetch('/api/test-email', { method: 'POST' });
-      const data = await response.json();
-      if (data.success) {
-        alert('Success: ' + data.message);
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        if (data.success) {
+          alert('Success: ' + data.message);
+        } else {
+          alert('Error: ' + data.error);
+        }
       } else {
-        alert('Error: ' + data.error);
+        const text = await response.text();
+        alert('Server Error: ' + text.substring(0, 100));
       }
     } catch (error: any) {
       alert('Failed to trigger test email: ' + error.message);
@@ -1348,24 +1375,57 @@ const Reminders = () => {
     }
   };
 
+  const handleSendRemindersNow = async () => {
+    setIsSendingReminders(true);
+    try {
+      const response = await fetch('/api/cron/reminders');
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        if (data.success) {
+          alert('Success: ' + data.message);
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } else {
+        const text = await response.text();
+        alert('Server Error: ' + text.substring(0, 100));
+      }
+    } catch (error: any) {
+      alert('Failed to trigger reminders: ' + error.message);
+    } finally {
+      setIsSendingReminders(false);
+    }
+  };
+
   const pendingReminders = reminders.filter(r => r.status === 'pending');
   const receivedReminders = reminders.filter(r => r.status === 'received');
 
   return (
     <div className="space-y-8">
-      <header className="flex justify-between items-center">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Reminders</h1>
           <p className="text-slate-500">Manage your payment collections</p>
         </div>
-        <button
-          onClick={handleTestEmail}
-          disabled={isTestingEmail}
-          className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors flex items-center gap-2 disabled:opacity-50"
-        >
-          <Bell size={16} />
-          {isTestingEmail ? 'Testing...' : 'Test Email Setup'}
-        </button>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleSendRemindersNow}
+            disabled={isSendingReminders}
+            className="flex-1 sm:flex-none px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Bell size={16} />
+            {isSendingReminders ? 'Sending...' : 'Send Reminders Now'}
+          </button>
+          <button
+            onClick={handleTestEmail}
+            disabled={isTestingEmail}
+            className="flex-1 sm:flex-none px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <LayoutDashboard size={16} />
+            {isTestingEmail ? 'Testing...' : 'Test Setup'}
+          </button>
+        </div>
       </header>
 
       <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">

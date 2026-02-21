@@ -104,7 +104,8 @@ async function setupServer() {
       await sendReminders();
       res.json({ success: true, message: "Cron reminders processed" });
     } catch (error: any) {
-      res.status(500).json({ success: false, error: error.message });
+      console.error("Cron Error:", error);
+      res.status(500).json({ success: false, error: error.message || "Internal Server Error" });
     }
   });
 
@@ -112,25 +113,41 @@ async function setupServer() {
   app.post("/api/test-email", async (req, res) => {
     console.log("Test email requested...");
     try {
-      const transporter = getTransporter();
       const user = process.env.EMAIL_USER;
       const pass = process.env.EMAIL_PASS;
 
+      console.log("Environment check:", { 
+        hasUser: !!user, 
+        hasPass: !!pass,
+        userValue: user ? user.substring(0, 3) + "..." : "missing" 
+      });
+
       if (!user || !pass) {
-        throw new Error("EMAIL_USER or EMAIL_PASS environment variables are missing.");
+        return res.status(400).json({ 
+          success: false, 
+          error: "EMAIL_USER or EMAIL_PASS environment variables are missing in Vercel settings." 
+        });
       }
 
+      const transporter = getTransporter();
       await transporter.sendMail({
         from: `"RBS Test" <${user}>`,
         to: user,
         subject: "RBS Panel - Test Email",
         text: "If you received this, your email configuration is working correctly!",
       });
+      
       res.json({ success: true, message: "Test email sent successfully to " + user });
     } catch (error: any) {
       console.error("Test Email Error:", error);
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({ success: false, error: error.message || "Failed to send email" });
     }
+  });
+
+  // Global Error Handler for API
+  app.use("/api", (err: any, req: any, res: any, next: any) => {
+    console.error("API Error:", err);
+    res.status(500).json({ success: false, error: err.message || "An internal server error occurred" });
   });
 
   // Schedule Daily Reminders (Runs every day at 9:00 AM)
