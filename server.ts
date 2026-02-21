@@ -24,14 +24,26 @@ async function setupServer() {
 
   app.use(express.json());
 
+  // Lazy Supabase Client
+  const getSupabase = () => {
+    const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "";
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
+    if (!url || !key) {
+      console.error("Supabase credentials missing!");
+    }
+    return createClient(url, key);
+  };
+
   // Email Transporter Setup
   const getTransporter = () => {
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+    if (!user || !pass) {
+      throw new Error("Email credentials (EMAIL_USER/EMAIL_PASS) are missing.");
+    }
     return nodemailer.createTransport({
       service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, // 16-digit App Password
-      },
+      auth: { user, pass },
     });
   };
 
@@ -39,56 +51,46 @@ async function setupServer() {
   const sendReminders = async () => {
     console.log("Checking for pending reminders...");
     try {
+      const supabase = getSupabase();
       const today = new Date().toISOString().split('T')[0];
       
-      // Fetch pending reminders that are due today or in the past
       const { data: reminders, error } = await supabase
         .from('reminders')
         .select('*, projects(name)')
         .eq('status', 'pending')
         .lte('date', today);
 
-      if (error) {
-        console.error("Supabase Error:", error);
-        return;
-      }
+      if (error) throw error;
 
       if (reminders && reminders.length > 0) {
-        console.log(`Found ${reminders.length} pending reminders. Sending emails...`);
+        console.log(`Found ${reminders.length} pending reminders.`);
         const transporter = getTransporter();
 
         for (const reminder of reminders) {
-          const mailOptions = {
-            from: `"RBS Panel Reminders" <${process.env.EMAIL_USER}>`,
-            to: process.env.REMINDER_EMAIL_RECIPIENT || process.env.EMAIL_USER,
-            subject: `⚠️ Payment Reminder: ${reminder.person_name} (${reminder.projects?.name || 'N/A'})`,
-            html: `
-              <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #4f46e5;">Payment Reminder</h2>
-                <p>This is an automated reminder for a pending payment collection.</p>
-                <hr />
-                <p><strong>Person:</strong> ${reminder.person_name}</p>
-                <p><strong>Amount:</strong> PKR ${reminder.amount.toLocaleString()}</p>
-                <p><strong>Project:</strong> ${reminder.projects?.name || 'N/A'}</p>
-                <p><strong>Due Date:</strong> ${reminder.date}</p>
-                <hr />
-                <p style="font-size: 12px; color: #666;">Managed by RBS Panel</p>
-              </div>
-            `,
-          };
-
           try {
-            await transporter.sendMail(mailOptions);
-            console.log(`✅ Email sent to ${mailOptions.to} for ${reminder.person_name}`);
+            await transporter.sendMail({
+              from: `"RBS Panel Reminders" <${process.env.EMAIL_USER}>`,
+              to: process.env.REMINDER_EMAIL_RECIPIENT || process.env.EMAIL_USER,
+              subject: `⚠️ Payment Reminder: ${reminder.person_name}`,
+              html: `
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                  <h2 style="color: #4f46e5;">Payment Reminder</h2>
+                  <p><strong>Person:</strong> ${reminder.person_name}</p>
+                  <p><strong>Amount:</strong> PKR ${reminder.amount.toLocaleString()}</p>
+                  <p><strong>Project:</strong> ${reminder.projects?.name || 'N/A'}</p>
+                  <p><strong>Due Date:</strong> ${reminder.date}</p>
+                </div>
+              `,
+            });
+            console.log(`✅ Sent to ${reminder.person_name}`);
           } catch (mailErr) {
-            console.error(`❌ Failed to send email for ${reminder.person_name}:`, mailErr);
+            console.error(`❌ Failed for ${reminder.person_name}:`, mailErr);
           }
         }
-      } else {
-        console.log("No pending reminders due today.");
       }
     } catch (err) {
-      console.error("Unexpected Error in sendReminders:", err);
+      console.error("Error in sendReminders:", err);
+      throw err;
     }
   };
 
@@ -159,16 +161,6 @@ async function setupServer() {
     console.error("API Error:", err);
     res.status(500).json({ success: false, error: err.message || "An internal server error occurred" });
   });
-
-  // Schedule Daily Reminders (Runs every day at 9:00 AM)
-  // Format: second minute hour day-of-month month day-of-week
-  cron.schedule('0 0 9 * * *', () => {
-    console.log("Running scheduled daily reminders check...");
-    sendReminders();
-  });
-
-  // Also run once on server start
-  sendReminders();
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
