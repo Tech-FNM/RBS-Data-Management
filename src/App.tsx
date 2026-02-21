@@ -1249,6 +1249,7 @@ const Reminders = () => {
   const [form, setForm] = useState({ project_id: '', person_name: '', amount: 0, date: new Date().toISOString().split('T')[0], document_url: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
 
   const fetchData = async () => {
     const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('date', { ascending: true });
@@ -1330,14 +1331,41 @@ const Reminders = () => {
     }
   };
 
+  const handleTestEmail = async () => {
+    setIsTestingEmail(true);
+    try {
+      const response = await fetch('/api/test-email', { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        alert('Success: ' + data.message);
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (error: any) {
+      alert('Failed to trigger test email: ' + error.message);
+    } finally {
+      setIsTestingEmail(false);
+    }
+  };
+
   const pendingReminders = reminders.filter(r => r.status === 'pending');
   const receivedReminders = reminders.filter(r => r.status === 'received');
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold text-slate-900">Reminders</h1>
-        <p className="text-slate-500">Manage your payment collections</p>
+      <header className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Reminders</h1>
+          <p className="text-slate-500">Manage your payment collections</p>
+        </div>
+        <button
+          onClick={handleTestEmail}
+          disabled={isTestingEmail}
+          className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200 transition-colors flex items-center gap-2 disabled:opacity-50"
+        >
+          <Bell size={16} />
+          {isTestingEmail ? 'Testing...' : 'Test Email Setup'}
+        </button>
       </header>
 
       <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
