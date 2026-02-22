@@ -181,9 +181,14 @@ app.use("/api", (err: any, req: any, res: any, next: any) => {
 
 // Vite middleware for development (Dynamic Import to prevent Vercel crash)
 async function setupVite() {
+  if (process.env.VERCEL === '1') {
+    return; // Skip completely on Vercel
+  }
+
   if (process.env.NODE_ENV !== "production") {
     try {
-      const { createServer: createViteServer } = await import("vite");
+      const vitePkg = "vite"; // Dynamic string hides it from Vercel's static analyzer
+      const { createServer: createViteServer } = await import(/* @vite-ignore */ vitePkg);
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa",
