@@ -1265,6 +1265,272 @@ const DocumentTab = ({ projectId, docs, onUpdate }: { projectId: string, docs: P
 
 
 
+const Reminders = () => {
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [form, setForm] = useState({ project_id: '', person_name: '', amount: 0, date: new Date().toISOString().split('T')[0], document_url: '' });
+  const [isUploading, setIsUploading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isSendingReminders, setIsSendingReminders] = useState(false);
+
+  const fetchData = async () => {
+    const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('date', { ascending: true });
+    if (r) setReminders(r);
+    const { data: p } = await supabase.from('projects').select('*');
+    if (p) setProjects(p);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `reminders/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(filePath);
+
+      setForm({ ...form, document_url: publicUrl });
+    } catch (error: any) {
+      alert('Error uploading file: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.from('reminders').insert([{ 
+      project_id: form.project_id,
+      person_name: form.person_name,
+      amount: form.amount,
+      date: form.date,
+      document_url: form.document_url,
+      status: 'pending' 
+    }]);
+    if (error) {
+      alert('Error adding reminder: ' + error.message);
+    } else {
+      setForm({ project_id: '', person_name: '', amount: 0, date: new Date().toISOString().split('T')[0], document_url: '' });
+      fetchData();
+    }
+  };
+
+  const handleMarkReceived = async (id: string) => {
+    await supabase.from('reminders').update({ status: 'received' }).eq('id', id);
+    fetchData();
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.from('reminders').delete().eq('id', id);
+      if (error) {
+        alert('Error deleting reminder: ' + error.message);
+      } else {
+        setConfirmDeleteId(null);
+        fetchData();
+      }
+    } catch (err) {
+      console.error('Unexpected reminder delete error:', err);
+    }
+  };
+
+  const handleSendRemindersNow = async () => {
+    setIsSendingReminders(true);
+    try {
+      const response = await fetch('/api/cron/reminders');
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const data = await response.json();
+        if (data.success) {
+          alert('Success: ' + data.message);
+        } else {
+          alert('Error: ' + data.error);
+        }
+      } else {
+        const text = await response.text();
+        alert('Server Error: ' + text.substring(0, 100));
+      }
+    } catch (error: any) {
+      alert('Failed to trigger reminders: ' + error.message);
+    } finally {
+      setIsSendingReminders(false);
+    }
+  };
+
+  const pendingReminders = reminders.filter(r => r.status === 'pending');
+  const receivedReminders = reminders.filter(r => r.status === 'received');
+
+  return (
+    <div className="space-y-8">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900">Reminders</h1>
+          <p className="text-slate-500">Manage your payment collections</p>
+        </div>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            onClick={handleSendRemindersNow}
+            disabled={isSendingReminders}
+            className="flex-1 sm:flex-none px-4 py-2 bg-indigo-50 text-indigo-700 rounded-xl text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            <Bell size={16} />
+            {isSendingReminders ? 'Sending...' : 'Send Reminders Now'}
+          </button>
+        </div>
+      </header>
+
+      <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+        <select
+          value={form.project_id}
+          onChange={(e) => setForm({ ...form, project_id: e.target.value })}
+          className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+          required
+        >
+          <option value="">Select Project</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <input
+          type="text"
+          value={form.person_name}
+          onChange={(e) => setForm({ ...form, person_name: e.target.value })}
+          placeholder="Person Name"
+          className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+          required
+        />
+        <input
+          type="number"
+          value={form.amount === 0 ? '' : form.amount}
+          onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
+          placeholder="Amount"
+          className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+          required
+        />
+        <input
+          type="date"
+          value={form.date}
+          onChange={(e) => setForm({ ...form, date: e.target.value })}
+          className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+          required
+        />
+        <div className="relative md:col-span-2">
+          <input
+            type="file"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="reminder-upload"
+          />
+          <label 
+            htmlFor="reminder-upload"
+            className={cn(
+              "flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-dashed border-slate-300 text-slate-500 cursor-pointer hover:bg-slate-100 transition-colors",
+              isUploading && "opacity-50 cursor-not-allowed"
+            )}
+          >
+            {isUploading ? 'Uploading...' : form.document_url ? 'File Attached ✓' : 'Attach Document (Optional)'}
+          </label>
+        </div>
+        <button type="submit" className="md:col-span-3 bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
+          Set Reminder
+        </button>
+      </form>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <Bell className="text-amber-500" />
+            Pending Collections
+          </h2>
+          <div className="space-y-4">
+            {pendingReminders.map((r: any) => (
+              <div key={r.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex justify-between items-center group">
+                <div>
+                  <p className="font-bold text-slate-900">{r.person_name}</p>
+                  <p className="text-sm text-slate-500">{r.projects?.name} • PKR {r.amount.toLocaleString()}</p>
+                  <p className="text-xs text-amber-600 font-medium mt-1">Due: {r.date}</p>
+                  {(r as any).document_url && (
+                    <a href={(r as any).document_url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline flex items-center gap-1 mt-1">
+                      <FileText size={12} /> View Document
+                    </a>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleMarkReceived(r.id)}
+                    className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                    title="Mark Received"
+                  >
+                    <CheckCircle size={20} />
+                  </button>
+                  {confirmDeleteId === r.id ? (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleDelete(r.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
+                      </button>
+                      <button 
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setConfirmDeleteId(r.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {pendingReminders.length === 0 && <p className="text-slate-500 text-center py-8">No pending reminders.</p>}
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <History className="text-indigo-500" />
+            Received History
+          </h2>
+          <div className="space-y-4">
+            {receivedReminders.map((r: any) => (
+              <div key={r.id} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-slate-900">{r.person_name}</p>
+                  <p className="text-sm text-slate-500">{r.projects?.name} • PKR {r.amount.toLocaleString()}</p>
+                  <p className="text-xs text-slate-400 mt-1">Received on: {r.date}</p>
+                </div>
+                <CheckCircle className="text-emerald-500" size={20} />
+              </div>
+            ))}
+            {receivedReminders.length === 0 && <p className="text-slate-500 text-center py-8">No history yet.</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Documents = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState('');
