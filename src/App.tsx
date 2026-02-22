@@ -139,7 +139,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email === 'tkla9988@gmail.com' && password === 'project01') {
+    if (email === 'rbsengineeringsystem@gmail.com' && password === 'project01') {
       onLogin();
     } else {
       setError('Invalid email or password');
@@ -165,7 +165,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="tkla9988@gmail.com"
+              placeholder="Email"
               required
             />
           </div>
@@ -176,7 +176,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-              placeholder="••••••••"
+              placeholder="Password"
               required
             />
           </div>
