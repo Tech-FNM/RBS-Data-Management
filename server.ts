@@ -38,10 +38,15 @@ const getTransporter = () => {
 
 // Email Reminder Logic
 const sendReminders = async () => {
-  console.log("Checking for pending reminders...");
+  console.log("sendReminders: Starting check for pending reminders...");
   try {
     const supabase = getSupabase();
+    if (!supabase) {
+      console.error("sendReminders: Supabase client not initialized. Aborting.");
+      throw new Error("Supabase client not available.");
+    }
     const today = new Date().toISOString().split('T')[0];
+    console.log(`sendReminders: Fetching reminders due on or before ${today}...`);
     
     const { data: reminders, error } = await supabase
       .from('reminders')
@@ -49,37 +54,56 @@ const sendReminders = async () => {
       .eq('status', 'pending')
       .lte('date', today);
 
-    if (error) throw error;
+    if (error) {
+      console.error("sendReminders: Supabase Fetch Error:", error);
+      throw new Error(`Supabase Fetch Error: ${error.message}`);
+    }
 
-    if (reminders && reminders.length > 0) {
-      console.log(`Found ${reminders.length} pending reminders.`);
-      const transporter = getTransporter();
+    if (!reminders || reminders.length === 0) {
+      console.log("sendReminders: No pending reminders due today.");
+      return;
+    }
 
-      for (const reminder of reminders) {
-        try {
-          await transporter.sendMail({
-            from: `"RBS Panel Reminders" <${process.env.EMAIL_USER}>`,
-            to: process.env.REMINDER_EMAIL_RECIPIENT || process.env.EMAIL_USER,
-            subject: `⚠️ Payment Reminder: ${reminder.person_name}`,
-            html: `
-              <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #4f46e5;">Payment Reminder</h2>
-                <p><strong>Person:</strong> ${reminder.person_name}</p>
-                <p><strong>Amount:</strong> PKR ${reminder.amount.toLocaleString()}</p>
-                <p><strong>Project:</strong> ${reminder.projects?.name || 'N/A'}</p>
-                <p><strong>Due Date:</strong> ${reminder.date}</p>
-              </div>
-            `,
-          });
-          console.log(`✅ Sent to ${reminder.person_name}`);
-        } catch (mailErr) {
-          console.error(`❌ Failed for ${reminder.person_name}:`, mailErr);
-        }
+    console.log(`sendReminders: Found ${reminders.length} pending reminders. Attempting to send emails...`);
+    const transporter = getTransporter();
+    if (!transporter) {
+      console.error("sendReminders: Email transporter not initialized. Aborting.");
+      throw new Error("Email transporter not available.");
+    }
+
+    for (const reminder of reminders) {
+      console.log(`sendReminders: Sending email for ${reminder.person_name} (ID: ${reminder.id})...`);
+      try {
+        await transporter.sendMail({
+          from: `"RBS Panel Reminders" <${process.env.EMAIL_USER}>`,
+          to: process.env.REMINDER_EMAIL_RECIPIENT || process.env.EMAIL_USER,
+          subject: `⚠️ Payment Reminder: ${reminder.person_name}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #4f46e5;">Payment Reminder</h2>
+              <p>Hello,</p>
+              <p>This is a reminder for a pending payment collection:</p>
+              <ul>
+                <li><strong>Person:</strong> ${reminder.person_name}</li>
+                <li><strong>Amount:</strong> PKR ${reminder.amount.toLocaleString()}</li>
+                <li><strong>Project:</strong> ${reminder.projects?.name || 'N/A'}</li>
+                <li><strong>Due Date:</strong> ${reminder.date}</li>
+              </ul>
+              <p>Please take necessary action.</p>
+              <p style="font-size: 12px; color: #666;">Managed by RBS Panel</p>
+            </div>
+          `,
+        });
+        console.log(`sendReminders: ✅ Email sent for ${reminder.person_name} (ID: ${reminder.id}).`);
+      } catch (mailErr) {
+        console.error(`sendReminders: ❌ Failed to send email for ${reminder.person_name} (ID: ${reminder.id}):`, mailErr);
+        // Continue to next reminder even if one fails
       }
     }
+    console.log("sendReminders: All pending reminders processed.");
   } catch (err) {
-    console.error("Error in sendReminders:", err);
-    throw err;
+    console.error("sendReminders: Unhandled Error:", err);
+    throw err; // Re-throw to be caught by API endpoint error handler
   }
 };
 
@@ -112,25 +136,28 @@ app.get("/api/config-check", (req, res) => {
 
 // Manual Trigger for testing
 app.post("/api/test-email", async (req, res) => {
-  console.log("Test email requested...");
+  console.log("test-email: Test email requested...");
   try {
     const user = process.env.EMAIL_USER;
     const pass = process.env.EMAIL_PASS;
 
-    console.log("Environment check:", { 
+    console.log("test-email: Environment check:", { 
       hasUser: !!user, 
       hasPass: !!pass,
       userValue: user ? user.substring(0, 3) + "..." : "missing" 
     });
 
     if (!user || !pass) {
+      const errorMessage = "EMAIL_USER or EMAIL_PASS environment variables are missing in Vercel settings.";
+      console.error("test-email: " + errorMessage);
       return res.status(400).json({ 
         success: false, 
-        error: "EMAIL_USER or EMAIL_PASS environment variables are missing in Vercel settings." 
+        error: errorMessage 
       });
     }
 
     const transporter = getTransporter();
+    console.log("test-email: Transporter created. Sending mail...");
     await transporter.sendMail({
       from: `"RBS Test" <${user}>`,
       to: user,
@@ -138,9 +165,10 @@ app.post("/api/test-email", async (req, res) => {
       text: "If you received this, your email configuration is working correctly!",
     });
     
+    console.log("test-email: Test email sent successfully.");
     res.json({ success: true, message: "Test email sent successfully to " + user });
   } catch (error: any) {
-    console.error("Test Email Error:", error);
+    console.error("test-email: Test Email Error:", error);
     res.status(500).json({ success: false, error: error.message || "Failed to send email" });
   }
 });
