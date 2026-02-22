@@ -46,13 +46,12 @@ const sendReminders = async () => {
       throw new Error("Supabase client not available.");
     }
     const today = new Date().toISOString().split('T')[0];
-    console.log(`sendReminders: Fetching reminders due on or before ${today}...`);
+    console.log(`sendReminders: Fetching ALL pending reminders (ignoring due date)...`);
     
     const { data: reminders, error } = await supabase
       .from('reminders')
       .select('*, projects(name)')
-      .eq('status', 'pending')
-      .lte('date', today);
+      .eq('status', 'pending');
 
     if (error) {
       console.error("sendReminders: Supabase Fetch Error:", error);
