@@ -75,7 +75,7 @@ const sendReminders = async () => {
       try {
         await transporter.sendMail({
           from: `"RBS Panel Reminders" <${process.env.EMAIL_USER}>`,
-          to: 'rbsdatamanagement@gmail.com',
+          to: process.env.REMINDER_EMAIL_RECIPIENT || process.env.EMAIL_USER,
           subject: `⚠️ Payment Reminder: ${reminder.person_name}`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
