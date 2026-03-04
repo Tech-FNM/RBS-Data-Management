@@ -1793,6 +1793,54 @@ export default function App() {
     localStorage.removeItem('isLoggedIn');
   };
 
+  // Auto-logout on inactivity (5 minutes)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let inactivityTimer: ReturnType<typeof setTimeout>;
+
+    const logout = () => {
+      handleLogout();
+    };
+
+    const resetTimer = () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(logout, 5 * 60 * 1000); // 5 minutes
+    };
+
+    // Initial start
+    resetTimer();
+
+    // Event listeners for user activity
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+
+    return () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+    };
+  }, [isAuthenticated]);
+
+  // Auto-logout at 12:00 AM (Midnight)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const calculateTimeToMidnight = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      return tomorrow.getTime() - now.getTime();
+    };
+
+    const timeToMidnight = calculateTimeToMidnight();
+    const timer = setTimeout(() => {
+      handleLogout();
+    }, timeToMidnight);
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated]);
+
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
   }
