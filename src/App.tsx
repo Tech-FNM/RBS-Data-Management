@@ -54,10 +54,10 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
     <>
       {/* Mobile/Tablet Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
-        <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+        <Link to="/" className="text-lg font-bold text-slate-900 flex items-center gap-2">
           <Briefcase className="text-indigo-600" size={20} />
           RBS Panel
-        </h1>
+        </Link>
         <button 
           onClick={() => setIsOpen(!isOpen)}
           className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
@@ -81,10 +81,10 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
       )}>
         <div className="flex flex-col h-full">
           <div className="p-6 hidden lg:block">
-            <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+            <Link to="/" className="text-xl font-bold text-slate-900 flex items-center gap-2">
               <Briefcase className="text-indigo-600" />
               RBS Panel
-            </h1>
+            </Link>
           </div>
           
           <div className="p-6 lg:hidden border-b border-slate-100 mb-4">
@@ -378,6 +378,8 @@ const ProjectList = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newProject, setNewProject] = useState({ name: '', budget: 0 });
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
@@ -406,6 +408,30 @@ const ProjectList = () => {
     } else {
       setIsModalOpen(false);
       setNewProject({ name: '', budget: 0 });
+      fetchProjects();
+    }
+  };
+
+  const handleEditClick = (project: Project) => {
+    setEditingProject({ id: project.id, name: project.name, budget: project.budget });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+
+    const { error } = await supabase
+      .from('projects')
+      .update({ name: editingProject.name, budget: editingProject.budget })
+      .eq('id', editingProject.id);
+
+    if (error) {
+      console.error('Error updating project:', error);
+      alert('Error updating project: ' + error.message);
+    } else {
+      setIsEditModalOpen(false);
+      setEditingProject(null);
       fetchProjects();
     }
   };
@@ -448,9 +474,12 @@ const ProjectList = () => {
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-bold text-slate-900">{project.name}</h3>
               <div className="flex gap-2 transition-opacity">
-                <Link to={`/projects/${project.id}`} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg">
+                <button 
+                  onClick={() => handleEditClick(project)} 
+                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                >
                   <Edit size={18} />
-                </Link>
+                </button>
                 {confirmDeleteId === project.id ? (
                   <div className="flex gap-1">
                     <button 
@@ -540,6 +569,51 @@ const ProjectList = () => {
                   className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
                 >
                   Create Project
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && editingProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Project</h2>
+            <form onSubmit={handleUpdateProject} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Project Name</label>
+                <input
+                  type="text"
+                  value={editingProject.name}
+                  onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
+                <input
+                  type="number"
+                  value={editingProject.budget}
+                  onChange={(e) => setEditingProject({ ...editingProject, budget: Number(e.target.value) })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
@@ -1727,7 +1801,7 @@ export default function App() {
     <Router>
       <div className="min-h-screen bg-slate-50 lg:pl-64 transition-all">
         <Sidebar onLogout={handleLogout} />
-        <main className="p-4 md:p-8 pt-16 lg:pt-8 max-w-7xl mx-auto">
+        <main className="p-4 md:p-8 pt-24 lg:pt-8 max-w-7xl mx-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/projects" element={<ProjectList />} />
