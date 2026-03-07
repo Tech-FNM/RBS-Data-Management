@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation, useParams } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Briefcase, 
@@ -24,12 +24,13 @@ import {
   FileUp,
   ChevronRight,
   Menu,
-  X
+  X,
+  Building
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { supabase } from './lib/supabase';
-import type { Project, Employee, Salary, Expense, Reminder, Document as ProjectDoc } from './types';
+import type { Project, Employee, Salary, Expense, Reminder, Document as ProjectDoc, Company } from './types';
 import * as XLSX from 'xlsx';
 
 // --- Utility ---
@@ -45,6 +46,7 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
 
   const navItems = [
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Companies', path: '/companies', icon: Building },
     { name: 'Projects', path: '/projects', icon: Briefcase },
     { name: 'Reminders', path: '/reminders', icon: Bell },
     { name: 'Documents', path: '/documents', icon: FileText },
@@ -232,7 +234,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const { data: projectsData, error: pError } = await supabase.from('projects').select('*');
+      const { data: projectsData, error: pError } = await supabase.from('projects').select('*, companies(name)');
       if (pError) throw pError;
 
       const { data: remindersData, error: rError } = await supabase.from('reminders').select('*').eq('status', 'pending');
@@ -295,7 +297,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: 'Total Active', value: stats.active, color: 'bg-blue-500', icon: Briefcase },
-          { label: 'Pending Payments', value: `${reminders.length} pending`, color: 'bg-amber-500', icon: Bell },
+          { label: 'Pending Payments', value: reminders.length, color: 'bg-amber-500', icon: Bell },
           { label: 'Completed', value: stats.completed, color: 'bg-emerald-500', icon: CheckCircle },
         ].map((stat) => (
           <div key={stat.label} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -329,6 +331,10 @@ const Dashboard = () => {
               </div>
 
               <div className="space-y-4 mb-6">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Company:</span>
+                  <span className="font-medium text-white">{(p as any).companies?.name || 'N/A'}</span>
+                </div>
                 <div className="flex justify-between items-center">
                   <span className="text-slate-400 text-sm">Total Budget:</span>
                   <span className="font-mono font-bold">Rs. {p.budget.toLocaleString()}</span>
@@ -376,14 +382,15 @@ const Dashboard = () => {
 
 const ProjectList = () => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', budget: 0 });
+  const [newProject, setNewProject] = useState({ name: '', budget: 0, company_id: '' });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number } | null>(null);
+  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number, company_id: string } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
-    const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('projects').select('*, companies(name)').order('created_at', { ascending: false });
     if (error) {
       console.error('Error fetching projects:', error);
       return;
@@ -391,8 +398,14 @@ const ProjectList = () => {
     if (data) setProjects(data);
   };
 
+  const fetchCompanies = async () => {
+    const { data } = await supabase.from('companies').select('*').order('name');
+    if (data) setCompanies(data);
+  };
+
   useEffect(() => {
     fetchProjects();
+    fetchCompanies();
   }, []);
 
   const handleAddProject = async (e: React.FormEvent) => {
@@ -400,6 +413,7 @@ const ProjectList = () => {
     const { error } = await supabase.from('projects').insert([{ 
       name: newProject.name, 
       budget: newProject.budget, 
+      company_id: newProject.company_id || null,
       status: 'active' 
     }]);
     if (error) {
@@ -407,13 +421,13 @@ const ProjectList = () => {
       alert('Error adding project: ' + error.message);
     } else {
       setIsModalOpen(false);
-      setNewProject({ name: '', budget: 0 });
+      setNewProject({ name: '', budget: 0, company_id: '' });
       fetchProjects();
     }
   };
 
   const handleEditClick = (project: Project) => {
-    setEditingProject({ id: project.id, name: project.name, budget: project.budget });
+    setEditingProject({ id: project.id, name: project.name, budget: project.budget, company_id: project.company_id || '' });
     setIsEditModalOpen(true);
   };
 
@@ -423,7 +437,7 @@ const ProjectList = () => {
 
     const { error } = await supabase
       .from('projects')
-      .update({ name: editingProject.name, budget: editingProject.budget })
+      .update({ name: editingProject.name, budget: editingProject.budget, company_id: editingProject.company_id || null })
       .eq('id', editingProject.id);
 
     if (error) {
@@ -507,6 +521,10 @@ const ProjectList = () => {
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Company</span>
+                <span className="font-semibold text-slate-900">{(project as any).companies?.name || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Budget</span>
                 <span className="font-semibold text-slate-900">PKR {project.budget.toLocaleString()}</span>
               </div>
@@ -545,6 +563,17 @@ const ProjectList = () => {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company (Optional)</label>
+                <select
+                  value={newProject.company_id}
+                  onChange={(e) => setNewProject({ ...newProject, company_id: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="">Select Company</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
@@ -590,6 +619,17 @@ const ProjectList = () => {
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
                   required
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company (Optional)</label>
+                <select
+                  value={editingProject.company_id}
+                  onChange={(e) => setEditingProject({ ...editingProject, company_id: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="">Select Company</option>
+                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
@@ -1774,9 +1814,267 @@ const Documents = () => {
   );
 };
 
-// --- Main App Component ---
+const CompanyList = () => {
+  const [companies, setCompanies] = useState<(Company & { project_count?: number })[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newCompany, setNewCompany] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<{ id: string, name: string } | null>(null);
+  const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [companyProjects, setCompanyProjects] = useState<Project[]>([]);
 
-import { useParams } from 'react-router-dom';
+  const fetchCompanies = async () => {
+    // First fetch companies
+    const { data: companiesData, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (companiesData) {
+      // Then fetch project counts for each company
+      // Note: In a real production app with many records, you'd want to use a join or a database function/view
+      // But for this scale, fetching counts separately is acceptable or using .select('*, projects(count)') if supported
+      
+      const companiesWithCounts = await Promise.all(companiesData.map(async (company) => {
+        const { count } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', company.id);
+        
+        return { ...company, project_count: count || 0 };
+      }));
+      
+      setCompanies(companiesWithCounts);
+    }
+  };
+
+  const fetchCompanyProjects = async (companyId: string) => {
+    const { data, error } = await supabase.from('projects').select('*').eq('company_id', companyId).order('created_at', { ascending: false });
+    if (data) setCompanyProjects(data);
+  };
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  useEffect(() => {
+    if (expandedCompanyId) {
+      fetchCompanyProjects(expandedCompanyId);
+    }
+  }, [expandedCompanyId]);
+
+  const handleAddCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { error } = await supabase.from('companies').insert([{ name: newCompany }]);
+    if (error) {
+      alert('Error adding company: ' + error.message);
+    } else {
+      setIsModalOpen(false);
+      setNewCompany('');
+      fetchCompanies();
+    }
+  };
+
+  const handleDeleteCompany = async (id: string) => {
+    const { error } = await supabase.from('companies').delete().eq('id', id);
+    if (error) {
+      alert('Error deleting company: ' + error.message);
+    } else {
+      setConfirmDeleteId(null);
+      fetchCompanies();
+    }
+  };
+
+  const handleEditClick = (company: Company) => {
+    setEditingCompany({ id: company.id, name: company.name });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCompany) return;
+    const { error } = await supabase.from('companies').update({ name: editingCompany.name }).eq('id', editingCompany.id);
+    if (error) {
+      alert('Error updating company: ' + error.message);
+    } else {
+      setIsEditModalOpen(false);
+      setEditingCompany(null);
+      fetchCompanies();
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-slate-900">Companies</h1>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+        >
+          <Plus size={20} />
+          New Company
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {companies.map((company) => (
+          <div key={company.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div 
+              className="p-6 flex justify-between items-center cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => setExpandedCompanyId(expandedCompanyId === company.id ? null : company.id)}
+            >
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
+                  <Building size={24} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">{company.name}</h3>
+                  <p className="text-sm text-slate-500">{company.project_count} Projects</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => handleEditClick(company)} 
+                    className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                  >
+                    <Edit size={18} />
+                  </button>
+                  {confirmDeleteId === company.id ? (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleDeleteCompany(company.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
+                      </button>
+                      <button 
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setConfirmDeleteId(company.id)}
+                      className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+                <ChevronRight 
+                  size={20} 
+                  className={cn("text-slate-400 transition-transform", expandedCompanyId === company.id && "rotate-90")} 
+                />
+              </div>
+            </div>
+            
+            {expandedCompanyId === company.id && (
+              <div className="border-t border-slate-100 bg-slate-50 p-6">
+                <h4 className="text-sm font-semibold text-slate-500 mb-4 uppercase tracking-wider">Projects in {company.name}</h4>
+                {companyProjects.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {companyProjects.map(project => (
+                      <Link 
+                        key={project.id} 
+                        to={`/projects/${project.id}`}
+                        className="bg-white p-4 rounded-xl border border-slate-200 hover:shadow-md transition-shadow flex justify-between items-center"
+                      >
+                        <div>
+                          <p className="font-bold text-slate-900">{project.name}</p>
+                          <p className="text-sm text-slate-500">PKR {project.budget.toLocaleString()}</p>
+                        </div>
+                        <ChevronRight size={16} className="text-slate-400" />
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 italic">No projects found for this company.</p>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        {companies.length === 0 && <p className="text-center text-slate-500 py-12">No companies found.</p>}
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Add New Company</h2>
+            <form onSubmit={handleAddCompany} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company Name</label>
+                <input
+                  type="text"
+                  value={newCompany}
+                  onChange={(e) => setNewCompany(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                >
+                  Add Company
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isEditModalOpen && editingCompany && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Company</h2>
+            <form onSubmit={handleUpdateCompany} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Company Name</label>
+                <input
+                  type="text"
+                  value={editingCompany.name}
+                  onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Main App Component ---
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -1886,6 +2184,7 @@ export default function App() {
         <main className="p-4 md:p-8 pt-24 lg:pt-8 max-w-7xl mx-auto">
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/companies" element={<CompanyList />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/:id" element={<ProjectDetail />} />
             <Route path="/reminders" element={<Reminders />} />

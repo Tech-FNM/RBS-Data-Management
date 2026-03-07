@@ -1,8 +1,15 @@
+export interface Company {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   budget: number;
   status: 'active' | 'completed';
+  company_id?: string;
   created_at: string;
 }
 
