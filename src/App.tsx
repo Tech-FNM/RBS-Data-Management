@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -1783,15 +1783,27 @@ export default function App() {
     return localStorage.getItem('isLoggedIn') === 'true';
   });
 
-  const handleLogin = () => {
+  const handleLogin = useCallback(() => {
     setIsAuthenticated(true);
     localStorage.setItem('isLoggedIn', 'true');
-  };
+  }, []);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     setIsAuthenticated(false);
     localStorage.removeItem('isLoggedIn');
-  };
+  }, []);
+
+  // Sync login state across tabs
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'isLoggedIn') {
+        setIsAuthenticated(event.newValue === 'true');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Auto-logout on inactivity (5 minutes)
   useEffect(() => {
@@ -1808,38 +1820,60 @@ export default function App() {
       inactivityTimer = setTimeout(logout, 5 * 60 * 1000); // 5 minutes
     };
 
+    // Throttle the resetTimer function to avoid excessive calls
+    let lastResetTime = 0;
+    const throttledResetTimer = () => {
+      const now = Date.now();
+      // Only reset if at least 1 second has passed since the last reset
+      if (now - lastResetTime > 1000) {
+        resetTimer();
+        lastResetTime = now;
+      }
+    };
+
     // Initial start
     resetTimer();
 
     // Event listeners for user activity
-    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
-    events.forEach(event => window.addEventListener(event, resetTimer));
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    events.forEach(event => window.addEventListener(event, throttledResetTimer));
 
     return () => {
       if (inactivityTimer) clearTimeout(inactivityTimer);
-      events.forEach(event => window.removeEventListener(event, resetTimer));
+      events.forEach(event => window.removeEventListener(event, throttledResetTimer));
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, handleLogout]);
 
   // Auto-logout at 12:00 AM (Midnight)
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const calculateTimeToMidnight = () => {
+    // Check every minute if it's midnight
+    const checkMidnight = () => {
       const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      return tomorrow.getTime() - now.getTime();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        handleLogout();
+      }
     };
 
-    const timeToMidnight = calculateTimeToMidnight();
-    const timer = setTimeout(() => {
+    const intervalId = setInterval(checkMidnight, 60000); // Check every minute
+
+    // Also set a timeout for the exact time to midnight to be more precise
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const timeToMidnight = tomorrow.getTime() - now.getTime();
+    
+    const timeoutId = setTimeout(() => {
       handleLogout();
     }, timeToMidnight);
 
-    return () => clearTimeout(timer);
-  }, [isAuthenticated]);
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(timeoutId);
+    };
+  }, [isAuthenticated, handleLogout]);
 
   if (!isAuthenticated) {
     return <LoginPage onLogin={handleLogin} />;
