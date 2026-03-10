@@ -17,3 +17,7 @@ CREATE POLICY "Enable read access for all users" ON companies FOR SELECT USING (
 CREATE POLICY "Enable insert for authenticated users only" ON companies FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 CREATE POLICY "Enable update for authenticated users only" ON companies FOR UPDATE USING (auth.role() = 'authenticated');
 CREATE POLICY "Enable delete for authenticated users only" ON companies FOR DELETE USING (auth.role() = 'authenticated');
+
+-- Add split_percentage to projects table
+ALTER TABLE projects 
+ADD COLUMN IF NOT EXISTS split_percentage NUMERIC DEFAULT 5;

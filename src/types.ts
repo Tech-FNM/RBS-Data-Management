@@ -10,6 +10,7 @@ export interface Project {
   budget: number;
   status: 'active' | 'completed';
   company_id?: string;
+  split_percentage?: number;
   created_at: string;
 }
 

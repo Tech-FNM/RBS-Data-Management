@@ -351,12 +351,12 @@ const Dashboard = () => {
 
               <div className="bg-white/5 rounded-2xl p-4 space-y-3 mb-6">
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-xs">5% of Remaining:</span>
-                  <span className="font-mono font-bold text-amber-500 text-sm">Rs. {(p.remaining * 0.05).toLocaleString()}</span>
+                  <span className="text-slate-400 text-xs">{p.split_percentage || 5}% of Remaining:</span>
+                  <span className="font-mono font-bold text-amber-500 text-sm">Rs. {(p.remaining * ((p.split_percentage || 5) / 100)).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-xs">95% of Remaining:</span>
-                  <span className="font-mono font-bold text-blue-400 text-sm">Rs. {(p.remaining * 0.95).toLocaleString()}</span>
+                  <span className="text-slate-400 text-xs">{100 - (p.split_percentage || 5)}% of Remaining:</span>
+                  <span className="font-mono font-bold text-blue-400 text-sm">Rs. {(p.remaining * ((100 - (p.split_percentage || 5)) / 100)).toLocaleString()}</span>
                 </div>
               </div>
 
@@ -384,9 +384,9 @@ const ProjectList = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', budget: 0, company_id: '' });
+  const [newProject, setNewProject] = useState({ name: '', budget: 0, company_id: '', split_percentage: 5 });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number, company_id: string } | null>(null);
+  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number, company_id: string, split_percentage: number } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
@@ -414,6 +414,7 @@ const ProjectList = () => {
       name: newProject.name, 
       budget: newProject.budget, 
       company_id: newProject.company_id || null,
+      split_percentage: newProject.split_percentage,
       status: 'active' 
     }]);
     if (error) {
@@ -421,13 +422,13 @@ const ProjectList = () => {
       alert('Error adding project: ' + error.message);
     } else {
       setIsModalOpen(false);
-      setNewProject({ name: '', budget: 0, company_id: '' });
+      setNewProject({ name: '', budget: 0, company_id: '', split_percentage: 5 });
       fetchProjects();
     }
   };
 
   const handleEditClick = (project: Project) => {
-    setEditingProject({ id: project.id, name: project.name, budget: project.budget, company_id: project.company_id || '' });
+    setEditingProject({ id: project.id, name: project.name, budget: project.budget, company_id: project.company_id || '', split_percentage: project.split_percentage || 5 });
     setIsEditModalOpen(true);
   };
 
@@ -437,7 +438,7 @@ const ProjectList = () => {
 
     const { error } = await supabase
       .from('projects')
-      .update({ name: editingProject.name, budget: editingProject.budget, company_id: editingProject.company_id || null })
+      .update({ name: editingProject.name, budget: editingProject.budget, company_id: editingProject.company_id || null, split_percentage: editingProject.split_percentage })
       .eq('id', editingProject.id);
 
     if (error) {
@@ -580,7 +581,19 @@ const ProjectList = () => {
                 <input
                   type="number"
                   value={newProject.budget === 0 ? '' : newProject.budget}
-                  onChange={(e) => setNewProject({ ...newProject, budget: Number(e.target.value) })}
+                  onChange={(e) => setNewProject({ ...newProject, budget: e.target.value === '' ? 0 : Number(e.target.value) })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={newProject.split_percentage === 0 ? '' : newProject.split_percentage}
+                  onChange={(e) => setNewProject({ ...newProject, split_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
                   required
                 />
@@ -635,8 +648,20 @@ const ProjectList = () => {
                 <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
                 <input
                   type="number"
-                  value={editingProject.budget}
-                  onChange={(e) => setEditingProject({ ...editingProject, budget: Number(e.target.value) })}
+                  value={editingProject.budget === 0 ? '' : editingProject.budget}
+                  onChange={(e) => setEditingProject({ ...editingProject, budget: e.target.value === '' ? 0 : Number(e.target.value) })}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={editingProject.split_percentage === 0 ? '' : editingProject.split_percentage}
+                  onChange={(e) => setEditingProject({ ...editingProject, split_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
                   required
                 />
@@ -734,6 +759,8 @@ const ProjectDetail = () => {
       ['Total Budget', `PKR ${project.budget.toLocaleString()}`],
       ['Total Spent', `PKR ${totalSpent.toLocaleString()}`],
       ['Remaining Balance', `PKR ${remaining.toLocaleString()}`],
+      [`${project.split_percentage || 5}% of Remaining`, `PKR ${(remaining * ((project.split_percentage || 5) / 100)).toLocaleString()}`],
+      [`${100 - (project.split_percentage || 5)}% of Remaining`, `PKR ${(remaining * ((100 - (project.split_percentage || 5)) / 100)).toLocaleString()}`],
       ['Status', project.status.toUpperCase()],
       ['Total Employees', employees.length],
       ['Report Generated', new Date().toLocaleString()]
