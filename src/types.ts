@@ -15,6 +15,8 @@ export interface Project {
   invoice_no?: string;
   pu_amount?: number;
   tax_amount?: number;
+  tax_percentage?: number;
+  tax_base?: 'budget' | 'pu_amount';
   created_at: string;
 }
 

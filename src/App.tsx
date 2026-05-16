@@ -420,9 +420,32 @@ const ProjectList = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', budget: 0, company_id: '', split_percentage: 5, pu_no: '', invoice_no: '', pu_amount: 0, tax_amount: 0 });
+  const [newProject, setNewProject] = useState({ 
+    name: '', 
+    budget: 0, 
+    company_id: '', 
+    split_percentage: 5, 
+    pu_no: '', 
+    invoice_no: '', 
+    pu_amount: 0, 
+    tax_amount: 0,
+    tax_percentage: 0,
+    tax_base: 'budget' as 'budget' | 'pu_amount'
+  });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number, company_id: string, split_percentage: number, pu_no: string, invoice_no: string, pu_amount: number, tax_amount: number } | null>(null);
+  const [editingProject, setEditingProject] = useState<{ 
+    id: string, 
+    name: string, 
+    budget: number, 
+    company_id: string, 
+    split_percentage: number, 
+    pu_no: string, 
+    invoice_no: string, 
+    pu_amount: number, 
+    tax_amount: number,
+    tax_percentage: number,
+    tax_base: 'budget' | 'pu_amount'
+  } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
@@ -446,6 +469,11 @@ const ProjectList = () => {
 
   const handleAddProject = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Calculate tax amount based on percentage and base
+    const baseAmount = newProject.tax_base === 'pu_amount' ? newProject.pu_amount : newProject.budget;
+    const calculatedTax = (baseAmount * (newProject.tax_percentage || 0)) / 100;
+
     const { error } = await supabase.from('projects').insert([{ 
       name: newProject.name, 
       budget: newProject.budget, 
@@ -454,7 +482,9 @@ const ProjectList = () => {
       pu_no: newProject.pu_no || null,
       invoice_no: newProject.invoice_no || null,
       pu_amount: newProject.pu_amount || 0,
-      tax_amount: newProject.tax_amount || 0,
+      tax_amount: calculatedTax,
+      tax_percentage: newProject.tax_percentage,
+      tax_base: newProject.tax_base,
       status: 'active' 
     }]);
     if (error) {
@@ -462,7 +492,18 @@ const ProjectList = () => {
       alert('Error adding project: ' + error.message);
     } else {
       setIsModalOpen(false);
-      setNewProject({ name: '', budget: 0, company_id: '', split_percentage: 5, pu_no: '', invoice_no: '', pu_amount: 0, tax_amount: 0 });
+      setNewProject({ 
+        name: '', 
+        budget: 0, 
+        company_id: '', 
+        split_percentage: 5, 
+        pu_no: '', 
+        invoice_no: '', 
+        pu_amount: 0, 
+        tax_amount: 0,
+        tax_percentage: 0,
+        tax_base: 'budget'
+      });
       fetchProjects();
     }
   };
@@ -477,7 +518,9 @@ const ProjectList = () => {
       pu_no: project.pu_no || '',
       invoice_no: project.invoice_no || '',
       pu_amount: project.pu_amount || 0,
-      tax_amount: project.tax_amount || 0
+      tax_amount: project.tax_amount || 0,
+      tax_percentage: project.tax_percentage || 0,
+      tax_base: (project.tax_base as any) || 'budget'
     });
     setIsEditModalOpen(true);
   };
@@ -485,6 +528,10 @@ const ProjectList = () => {
   const handleUpdateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject) return;
+
+    // Calculate tax amount based on percentage and base
+    const baseAmount = editingProject.tax_base === 'pu_amount' ? editingProject.pu_amount : editingProject.budget;
+    const calculatedTax = (baseAmount * (editingProject.tax_percentage || 0)) / 100;
 
     const { error } = await supabase
       .from('projects')
@@ -496,7 +543,9 @@ const ProjectList = () => {
         pu_no: editingProject.pu_no || null,
         invoice_no: editingProject.invoice_no || null,
         pu_amount: editingProject.pu_amount || 0,
-        tax_amount: editingProject.tax_amount || 0
+        tax_amount: calculatedTax,
+        tax_percentage: editingProject.tax_percentage,
+        tax_base: editingProject.tax_base
       })
       .eq('id', editingProject.id);
 
@@ -727,16 +776,36 @@ const ProjectList = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Amount (Optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Percentage (%)</label>
                     <input
                       type="number"
-                      value={newProject.tax_amount === 0 ? '' : newProject.tax_amount}
-                      onChange={(e) => setNewProject({ ...newProject, tax_amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      step="0.01"
+                      value={newProject.tax_percentage === 0 ? '' : newProject.tax_percentage}
+                      onChange={(e) => setNewProject({ ...newProject, tax_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                      placeholder="Enter Tax Amount"
+                      placeholder="Enter Tax %"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Base</label>
+                    <select
+                      value={newProject.tax_base}
+                      onChange={(e) => setNewProject({ ...newProject, tax_base: e.target.value as 'budget' | 'pu_amount' })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="budget">Total Budget</option>
+                      <option value="pu_amount">PU Amount</option>
+                    </select>
+                  </div>
                 </div>
+                {newProject.tax_percentage > 0 && (
+                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center text-sm">
+                      <span className="text-slate-500 italic">Estimated Tax Amount:</span>
+                      <span className="font-bold text-red-500">
+                        PKR {(((newProject.tax_base === 'pu_amount' ? newProject.pu_amount : newProject.budget) * newProject.tax_percentage) / 100).toLocaleString()}
+                      </span>
+                   </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
                   <input
@@ -841,16 +910,36 @@ const ProjectList = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Amount (Optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Percentage (%)</label>
                     <input
                       type="number"
-                      value={editingProject.tax_amount === 0 ? '' : editingProject.tax_amount}
-                      onChange={(e) => setEditingProject({ ...editingProject, tax_amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      step="0.01"
+                      value={editingProject.tax_percentage === 0 ? '' : editingProject.tax_percentage}
+                      onChange={(e) => setEditingProject({ ...editingProject, tax_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                      placeholder="Enter Tax Amount"
+                      placeholder="Enter Tax %"
                     />
                   </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Base</label>
+                    <select
+                      value={editingProject.tax_base}
+                      onChange={(e) => setEditingProject({ ...editingProject, tax_base: e.target.value as 'budget' | 'pu_amount' })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    >
+                      <option value="budget">Total Budget</option>
+                      <option value="pu_amount">PU Amount</option>
+                    </select>
+                  </div>
                 </div>
+                {editingProject.tax_percentage > 0 && (
+                   <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center text-sm">
+                      <span className="text-slate-500 italic">Estimated Tax Amount:</span>
+                      <span className="font-bold text-red-500">
+                        PKR {(((editingProject.tax_base === 'pu_amount' ? editingProject.pu_amount : editingProject.budget) * editingProject.tax_percentage) / 100).toLocaleString()}
+                      </span>
+                   </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
                   <input
@@ -890,6 +979,7 @@ const ProjectList = () => {
 const ProjectDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [project, setProject] = useState<Project | null>(null);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState('employees');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [salaries, setSalaries] = useState<Salary[]>([]);
@@ -902,6 +992,9 @@ const ProjectDetail = () => {
     if (!id) return;
     const { data: p } = await supabase.from('projects').select('*').eq('id', id).single();
     if (p) setProject(p);
+
+    const { data: pAll } = await supabase.from('projects').select('*');
+    if (pAll) setAllProjects(pAll);
 
     const { data: e } = await supabase.from('employees').select('*').eq('project_id', id);
     if (e) setEmployees(e);
