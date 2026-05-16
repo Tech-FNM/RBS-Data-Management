@@ -25,7 +25,8 @@ import {
   ChevronRight,
   Menu,
   X,
-  Building
+  Building,
+  Search
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -118,7 +119,7 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
 
           <div className="p-4 border-t border-slate-100">
             <div className="px-4 py-2 mb-2 text-[10px] text-slate-400 text-center">
-              Managed by <a href="https://techfnm.ct.ws/" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">techfnm</a>
+              Managed by <a href="https://techfnm.com/" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">techfnm</a>
             </div>
             <button
               onClick={onLogout}
@@ -218,7 +219,7 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
           </button>
         </form>
         <div className="mt-8 text-center text-xs text-slate-400">
-          Managed by <a href="https://techfnm.ct.ws/" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">techfnm</a>
+          Managed by <a href="https://techfnm.com/" target="_blank" rel="noreferrer" className="text-indigo-500 hover:underline">techfnm</a>
         </div>
       </div>
     </div>
@@ -234,7 +235,7 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const { data: projectsData, error: pError } = await supabase.from('projects').select('*, companies(name)');
+      const { data: projectsData, error: pError } = await supabase.from('projects').select('*, companies(name)').order('created_at', { ascending: false });
       if (pError) throw pError;
 
       const { data: remindersData, error: rError } = await supabase.from('reminders').select('*').eq('status', 'pending');
@@ -314,63 +315,97 @@ const Dashboard = () => {
 
       <div className="space-y-6">
         <h2 className="text-xl font-bold text-slate-900">All Projects Overview</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map((p) => (
-            <div key={p.id} className="bg-[#1e1e1e] text-white p-6 rounded-3xl border border-white/10 shadow-xl">
+            <div key={p.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group flex flex-col">
               <div className="flex justify-between items-start mb-6">
                 <div>
-                  <h3 className="text-2xl font-bold tracking-tight">{p.name}</h3>
-                  <p className="text-slate-400 text-sm">{p.employeeCount} employees</p>
+                  <h3 className="text-xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{p.name}</h3>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-slate-500 text-xs">{(p as any).companies?.name || 'No Company'}</p>
+                    <span className="text-slate-300">•</span>
+                    <p className="text-slate-500 text-xs">{p.employeeCount || 0} Employees</p>
+                  </div>
                 </div>
                 <span className={cn(
-                  "px-3 py-1 rounded-lg text-[10px] font-bold tracking-widest",
-                  p.status === 'active' ? "bg-blue-500/20 text-blue-400 border border-blue-500/30" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  "px-3 py-1 rounded-full text-[10px] font-bold tracking-wider",
+                  p.status === 'active' ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100"
                 )}>
                   {p.status.toUpperCase()}
                 </span>
               </div>
 
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-sm">Company:</span>
-                  <span className="font-medium text-white">{(p as any).companies?.name || 'N/A'}</span>
+              <div className="space-y-3 mb-6 flex-grow">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-slate-500">Budget</span>
+                  <span className="font-semibold text-slate-900">PKR {p.budget.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-sm">Total Budget:</span>
-                  <span className="font-mono font-bold">Rs. {p.budget.toLocaleString()}</span>
+                {p.pu_no && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">PU No</span>
+                    <span className="font-medium text-slate-700">{p.pu_no}</span>
+                  </div>
+                )}
+                {p.invoice_no && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Invoice No</span>
+                    <span className="font-medium text-slate-700">{p.invoice_no}</span>
+                  </div>
+                )}
+                {p.pu_amount > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">PU Amount</span>
+                    <span className="font-semibold text-indigo-600">PKR {p.pu_amount.toLocaleString()}</span>
+                  </div>
+                )}
+                {p.tax_amount > 0 && (
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Tax Amount</span>
+                    <span className="font-semibold text-red-500">PKR {p.tax_amount.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="pt-3 border-t border-slate-100 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Spent</span>
+                    <span className="font-bold text-red-500">PKR {p.spent.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500">Balance</span>
+                    <span className="font-bold text-emerald-600">PKR {p.remaining.toLocaleString()}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-sm">Spent:</span>
-                  <span className="font-mono font-bold text-red-500">Rs. {p.spent.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-sm">Remaining:</span>
-                  <span className="font-mono font-bold text-emerald-500">Rs. {p.remaining.toLocaleString()}</span>
+
+                <div className="mt-4 bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">{p.split_percentage || 5}% of Balance:</span>
+                    <span className="font-mono font-bold text-amber-600 tracking-tight">Rs. {(p.remaining * ((p.split_percentage || 5) / 100)).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">{100 - (p.split_percentage || 5)}% of Balance:</span>
+                    <span className="font-mono font-bold text-blue-600 tracking-tight">Rs. {(p.remaining * ((100 - (p.split_percentage || 5)) / 100)).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="bg-white/5 rounded-2xl p-4 space-y-3 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-xs">{p.split_percentage || 5}% of Remaining:</span>
-                  <span className="font-mono font-bold text-amber-500 text-sm">Rs. {(p.remaining * ((p.split_percentage || 5) / 100)).toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 text-xs">{100 - (p.split_percentage || 5)}% of Remaining:</span>
-                  <span className="font-mono font-bold text-blue-400 text-sm">Rs. {(p.remaining * ((100 - (p.split_percentage || 5)) / 100)).toLocaleString()}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+              <div className="space-y-2 mb-6">
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-500" 
+                    className="h-full bg-indigo-500 transition-all duration-500" 
                     style={{ width: `${Math.min(p.percentUsed, 100)}%` }}
                   />
                 </div>
-                <p className="text-center font-mono text-xs font-bold text-slate-400">
+                <p className="text-right text-[10px] font-bold text-slate-400">
                   {p.percentUsed.toFixed(1)}% Used
                 </p>
               </div>
+
+              <Link 
+                to={`/projects/${p.id}`}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
+              >
+                View Details
+                <ChevronRight size={16} />
+              </Link>
             </div>
           ))}
           {projects.length === 0 && <p className="col-span-full text-center text-slate-500 py-12">No projects found.</p>}
@@ -383,10 +418,11 @@ const Dashboard = () => {
 const ProjectList = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newProject, setNewProject] = useState({ name: '', budget: 0, company_id: '', split_percentage: 5 });
+  const [newProject, setNewProject] = useState({ name: '', budget: 0, company_id: '', split_percentage: 5, pu_no: '', invoice_no: '', pu_amount: 0, tax_amount: 0 });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number, company_id: string, split_percentage: number } | null>(null);
+  const [editingProject, setEditingProject] = useState<{ id: string, name: string, budget: number, company_id: string, split_percentage: number, pu_no: string, invoice_no: string, pu_amount: number, tax_amount: number } | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const fetchProjects = async () => {
@@ -415,6 +451,10 @@ const ProjectList = () => {
       budget: newProject.budget, 
       company_id: newProject.company_id || null,
       split_percentage: newProject.split_percentage,
+      pu_no: newProject.pu_no || null,
+      invoice_no: newProject.invoice_no || null,
+      pu_amount: newProject.pu_amount || 0,
+      tax_amount: newProject.tax_amount || 0,
       status: 'active' 
     }]);
     if (error) {
@@ -422,13 +462,23 @@ const ProjectList = () => {
       alert('Error adding project: ' + error.message);
     } else {
       setIsModalOpen(false);
-      setNewProject({ name: '', budget: 0, company_id: '', split_percentage: 5 });
+      setNewProject({ name: '', budget: 0, company_id: '', split_percentage: 5, pu_no: '', invoice_no: '', pu_amount: 0, tax_amount: 0 });
       fetchProjects();
     }
   };
 
   const handleEditClick = (project: Project) => {
-    setEditingProject({ id: project.id, name: project.name, budget: project.budget, company_id: project.company_id || '', split_percentage: project.split_percentage || 5 });
+    setEditingProject({ 
+      id: project.id, 
+      name: project.name, 
+      budget: project.budget, 
+      company_id: project.company_id || '', 
+      split_percentage: project.split_percentage || 5,
+      pu_no: project.pu_no || '',
+      invoice_no: project.invoice_no || '',
+      pu_amount: project.pu_amount || 0,
+      tax_amount: project.tax_amount || 0
+    });
     setIsEditModalOpen(true);
   };
 
@@ -438,7 +488,16 @@ const ProjectList = () => {
 
     const { error } = await supabase
       .from('projects')
-      .update({ name: editingProject.name, budget: editingProject.budget, company_id: editingProject.company_id || null, split_percentage: editingProject.split_percentage })
+      .update({ 
+        name: editingProject.name, 
+        budget: editingProject.budget, 
+        company_id: editingProject.company_id || null, 
+        split_percentage: editingProject.split_percentage,
+        pu_no: editingProject.pu_no || null,
+        invoice_no: editingProject.invoice_no || null,
+        pu_amount: editingProject.pu_amount || 0,
+        tax_amount: editingProject.tax_amount || 0
+      })
       .eq('id', editingProject.id);
 
     if (error) {
@@ -472,19 +531,42 @@ const ProjectList = () => {
 
   return (
     <div className="space-y-8">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold text-slate-900">Projects</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
-        >
-          <Plus size={20} />
-          New Project
-        </button>
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+          <div className="relative flex-grow md:w-64">
+            <input
+              type="text"
+              placeholder="Search name, PU, or Invoice..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Search size={18} />
+            </div>
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+          >
+            <Plus size={20} />
+            New Project
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects.map((project) => (
+        {projects
+          .filter(p => {
+            const query = searchQuery.toLowerCase();
+            return (
+              p.name.toLowerCase().includes(query) ||
+              (p.pu_no && p.pu_no.toLowerCase().includes(query)) ||
+              (p.invoice_no && p.invoice_no.toLowerCase().includes(query))
+            );
+          })
+          .map((project) => (
           <div key={project.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow group">
             <div className="flex justify-between items-start mb-4">
               <h3 className="text-lg font-bold text-slate-900">{project.name}</h3>
@@ -529,6 +611,30 @@ const ProjectList = () => {
                 <span className="text-slate-500">Budget</span>
                 <span className="font-semibold text-slate-900">PKR {project.budget.toLocaleString()}</span>
               </div>
+              {project.pu_no && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">PU No</span>
+                  <span className="font-semibold text-slate-900">{project.pu_no}</span>
+                </div>
+              )}
+              {project.invoice_no && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Invoice No</span>
+                  <span className="font-semibold text-slate-900">{project.invoice_no}</span>
+                </div>
+              )}
+              {project.pu_amount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">PU Amount</span>
+                  <span className="font-semibold text-indigo-600">PKR {project.pu_amount.toLocaleString()}</span>
+                </div>
+              )}
+              {project.tax_amount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Tax Amount</span>
+                  <span className="font-semibold text-red-500">PKR {project.tax_amount.toLocaleString()}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Status</span>
                 <span className={cn(
@@ -551,137 +657,229 @@ const ProjectList = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Add New Project</h2>
-            <form onSubmit={handleAddProject} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Project Name</label>
-                <input
-                  type="text"
-                  value={newProject.name}
-                  onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Company (Optional)</label>
-                <select
-                  value={newProject.company_id}
-                  onChange={(e) => setNewProject({ ...newProject, company_id: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  <option value="">Select Company</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
-                <input
-                  type="number"
-                  value={newProject.budget === 0 ? '' : newProject.budget}
-                  onChange={(e) => setNewProject({ ...newProject, budget: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={newProject.split_percentage === 0 ? '' : newProject.split_percentage}
-                  onChange={(e) => setNewProject({ ...newProject, split_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
-                >
-                  Create Project
-                </button>
-              </div>
-            </form>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+          <div className="flex min-h-full items-center justify-center py-8">
+            <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Add New Project</h2>
+              <form onSubmit={handleAddProject} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project Name</label>
+                  <input
+                    type="text"
+                    value={newProject.name}
+                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Company (Optional)</label>
+                  <select
+                    value={newProject.company_id}
+                    onChange={(e) => setNewProject({ ...newProject, company_id: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
+                  <input
+                    type="number"
+                    value={newProject.budget === 0 ? '' : newProject.budget}
+                    onChange={(e) => setNewProject({ ...newProject, budget: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">PU No (Optional)</label>
+                    <input
+                      type="text"
+                      value={newProject.pu_no}
+                      onChange={(e) => setNewProject({ ...newProject, pu_no: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter PU No"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Invoice No (Optional)</label>
+                    <input
+                      type="text"
+                      value={newProject.invoice_no}
+                      onChange={(e) => setNewProject({ ...newProject, invoice_no: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter Invoice No"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">PU Amount (Optional)</label>
+                    <input
+                      type="number"
+                      value={newProject.pu_amount === 0 ? '' : newProject.pu_amount}
+                      onChange={(e) => setNewProject({ ...newProject, pu_amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter PU Amount"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Amount (Optional)</label>
+                    <input
+                      type="number"
+                      value={newProject.tax_amount === 0 ? '' : newProject.tax_amount}
+                      onChange={(e) => setNewProject({ ...newProject, tax_amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter Tax Amount"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newProject.split_percentage === 0 ? '' : newProject.split_percentage}
+                    onChange={(e) => setNewProject({ ...newProject, split_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                  >
+                    Create Project
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {isEditModalOpen && editingProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl">
-            <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Project</h2>
-            <form onSubmit={handleUpdateProject} className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Project Name</label>
-                <input
-                  type="text"
-                  value={editingProject.name}
-                  onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Company (Optional)</label>
-                <select
-                  value={editingProject.company_id}
-                  onChange={(e) => setEditingProject({ ...editingProject, company_id: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                >
-                  <option value="">Select Company</option>
-                  {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
-                <input
-                  type="number"
-                  value={editingProject.budget === 0 ? '' : editingProject.budget}
-                  onChange={(e) => setEditingProject({ ...editingProject, budget: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={editingProject.split_percentage === 0 ? '' : editingProject.split_percentage}
-                  onChange={(e) => setEditingProject({ ...editingProject, split_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                  required
-                />
-              </div>
-              <div className="flex gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
-                >
-                  Save Changes
-                </button>
-              </div>
-            </form>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+          <div className="flex min-h-full items-center justify-center py-8">
+            <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Project</h2>
+              <form onSubmit={handleUpdateProject} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project Name</label>
+                  <input
+                    type="text"
+                    value={editingProject.name}
+                    onChange={(e) => setEditingProject({ ...editingProject, name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Company (Optional)</label>
+                  <select
+                    value={editingProject.company_id}
+                    onChange={(e) => setEditingProject({ ...editingProject, company_id: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                  >
+                    <option value="">Select Company</option>
+                    {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Total Budget (PKR)</label>
+                  <input
+                    type="number"
+                    value={editingProject.budget === 0 ? '' : editingProject.budget}
+                    onChange={(e) => setEditingProject({ ...editingProject, budget: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">PU No (Optional)</label>
+                    <input
+                      type="text"
+                      value={editingProject.pu_no}
+                      onChange={(e) => setEditingProject({ ...editingProject, pu_no: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter PU No"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Invoice No (Optional)</label>
+                    <input
+                      type="text"
+                      value={editingProject.invoice_no}
+                      onChange={(e) => setEditingProject({ ...editingProject, invoice_no: e.target.value })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter Invoice No"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">PU Amount (Optional)</label>
+                    <input
+                      type="number"
+                      value={editingProject.pu_amount === 0 ? '' : editingProject.pu_amount}
+                      onChange={(e) => setEditingProject({ ...editingProject, pu_amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter PU Amount"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Tax Amount (Optional)</label>
+                    <input
+                      type="number"
+                      value={editingProject.tax_amount === 0 ? '' : editingProject.tax_amount}
+                      onChange={(e) => setEditingProject({ ...editingProject, tax_amount: e.target.value === '' ? 0 : Number(e.target.value) })}
+                      className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Enter Tax Amount"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Remaining Split Percentage (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editingProject.split_percentage === 0 ? '' : editingProject.split_percentage}
+                    onChange={(e) => setEditingProject({ ...editingProject, split_percentage: e.target.value === '' ? 0 : Number(e.target.value) })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
@@ -752,11 +950,18 @@ const ProjectDetail = () => {
                        (expenses.reduce((acc, curr) => acc + curr.amount, 0) || 0);
     const remaining = project.budget - totalSpent;
     
+    const totalReceived = reminders.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+    
     const overviewData = [
       ['Project Detail Report'],
       [''],
       ['Project Name', project.name],
       ['Total Budget', `PKR ${project.budget.toLocaleString()}`],
+      ['PU No', project.pu_no || 'N/A'],
+      ['Invoice No', project.invoice_no || 'N/A'],
+      ['PU Amount', `PKR ${(project.pu_amount || 0).toLocaleString()}`],
+      ['Tax Amount', `PKR ${(project.tax_amount || 0).toLocaleString()}`],
+      ['Total Received', `PKR ${totalReceived.toLocaleString()}`],
       ['Total Spent', `PKR ${totalSpent.toLocaleString()}`],
       ['Remaining Balance', `PKR ${remaining.toLocaleString()}`],
       [`${project.split_percentage || 5}% of Remaining`, `PKR ${(remaining * ((project.split_percentage || 5) / 100)).toLocaleString()}`],
@@ -809,7 +1014,13 @@ const ProjectDetail = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
-          <p className="text-slate-500">Budget: PKR {project.budget.toLocaleString()}</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2">
+            <p className="text-slate-500">Budget: <span className="font-semibold text-slate-700 text-sm">PKR {project.budget.toLocaleString()}</span></p>
+            {project.pu_no && <p className="text-slate-500">PU No: <span className="font-semibold text-slate-700 text-sm">{project.pu_no}</span></p>}
+            {project.invoice_no && <p className="text-slate-500">Invoice: <span className="font-semibold text-slate-700 text-sm">{project.invoice_no}</span></p>}
+            {project.pu_amount > 0 && <p className="text-slate-500">PU Amount: <span className="font-semibold text-indigo-600 text-sm">PKR {project.pu_amount.toLocaleString()}</span></p>}
+            {project.tax_amount > 0 && <p className="text-slate-500">Tax Amount: <span className="font-semibold text-red-500 text-sm">PKR {project.tax_amount.toLocaleString()}</span></p>}
+          </div>
         </div>
         <div className="flex flex-wrap gap-3">
           <button 
@@ -874,7 +1085,7 @@ const ProjectDetail = () => {
         {activeTab === 'employees' && <EmployeeTab projectId={id!} employees={employees} onUpdate={fetchData} salaries={salaries} />}
         {activeTab === 'salaries' && <SalaryTab employees={employees} onUpdate={fetchData} salaries={salaries} />}
         {activeTab === 'expenses' && <ExpenseTab projectId={id!} expenses={expenses} onUpdate={fetchData} />}
-        {activeTab === 'reminders' && <HistoryTab reminders={reminders} />}
+        {activeTab === 'reminders' && <HistoryTab reminders={reminders} onUpdate={fetchData} projects={allProjects} />}
         {activeTab === 'documents' && <DocumentTab projectId={id!} docs={docs} onUpdate={fetchData} />}
       </div>
     </div>
@@ -1270,7 +1481,45 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
   );
 };
 
-const HistoryTab = ({ reminders }: { reminders: Reminder[] }) => {
+const HistoryTab = ({ reminders, onUpdate, projects }: { reminders: Reminder[], onUpdate: () => void, projects: Project[] }) => {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('reminders').delete().eq('id', id);
+    if (error) {
+      alert('Error deleting payment: ' + error.message);
+    } else {
+      setConfirmDeleteId(null);
+      onUpdate();
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReminder) return;
+
+    const { error } = await supabase
+      .from('reminders')
+      .update({
+        project_id: editingReminder.project_id,
+        person_name: editingReminder.person_name,
+        amount: editingReminder.amount,
+        date: editingReminder.date,
+        status: editingReminder.status
+      })
+      .eq('id', editingReminder.id);
+
+    if (error) {
+      alert('Error updating payment: ' + error.message);
+    } else {
+      setIsEditModalOpen(false);
+      setEditingReminder(null);
+      onUpdate();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-bold text-slate-900">Payment Received History</h3>
@@ -1281,6 +1530,7 @@ const HistoryTab = ({ reminders }: { reminders: Reminder[] }) => {
               <th className="pb-4 font-medium">Person</th>
               <th className="pb-4 font-medium">Amount</th>
               <th className="pb-4 font-medium">Date</th>
+              <th className="pb-4 font-medium text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
@@ -1289,11 +1539,112 @@ const HistoryTab = ({ reminders }: { reminders: Reminder[] }) => {
                 <td className="py-4 font-medium">{r.person_name}</td>
                 <td className="py-4">PKR {r.amount.toLocaleString()}</td>
                 <td className="py-4">{r.date}</td>
+                <td className="py-4 text-right">
+                  <div className="flex justify-end gap-2">
+                    <button 
+                      onClick={() => {
+                        setEditingReminder(r);
+                        setIsEditModalOpen(true);
+                      }} 
+                      className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                    >
+                      <Edit size={18} />
+                    </button>
+                    {confirmDeleteId === r.id ? (
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => handleDelete(r.id)}
+                          className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                        >
+                          CONFIRM
+                        </button>
+                        <button 
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(r.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {isEditModalOpen && editingReminder && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 backdrop-blur-sm text-left">
+          <div className="flex min-h-full items-center justify-center py-8">
+            <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Received Payment</h2>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project</label>
+                  <select
+                    value={editingReminder.project_id}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, project_id: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  >
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Person Name</label>
+                  <input
+                    type="text"
+                    value={editingReminder.person_name}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, person_name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Amount (PKR)</label>
+                  <input
+                    type="number"
+                    value={editingReminder.amount}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, amount: Number(e.target.value) })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={editingReminder.date}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, date: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1437,10 +1788,12 @@ const Reminders = () => {
   const [form, setForm] = useState({ project_id: '', person_name: '', amount: 0, date: new Date().toISOString().split('T')[0], document_url: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [editingReminder, setEditingReminder] = useState<Reminder | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSendingReminders, setIsSendingReminders] = useState(false);
 
   const fetchData = async () => {
-    const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('date', { ascending: true });
+    const { data: r } = await supabase.from('reminders').select('*, projects(name)').order('created_at', { ascending: false });
     if (r) setReminders(r);
     const { data: p } = await supabase.from('projects').select('*');
     if (p) setProjects(p);
@@ -1492,6 +1845,30 @@ const Reminders = () => {
       alert('Error adding reminder: ' + error.message);
     } else {
       setForm({ project_id: '', person_name: '', amount: 0, date: new Date().toISOString().split('T')[0], document_url: '' });
+      fetchData();
+    }
+  };
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingReminder) return;
+
+    const { error } = await supabase
+      .from('reminders')
+      .update({
+        project_id: editingReminder.project_id,
+        person_name: editingReminder.person_name,
+        amount: editingReminder.amount,
+        date: editingReminder.date,
+        status: editingReminder.status
+      })
+      .eq('id', editingReminder.id);
+
+    if (error) {
+      alert('Error updating reminder: ' + error.message);
+    } else {
+      setIsEditModalOpen(false);
+      setEditingReminder(null);
       fetchData();
     }
   };
@@ -1636,6 +2013,16 @@ const Reminders = () => {
                 </div>
                 <div className="flex gap-2">
                   <button 
+                    onClick={() => {
+                        setEditingReminder(r);
+                        setIsEditModalOpen(true);
+                    }}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title="Edit"
+                  >
+                    <Edit size={20} />
+                  </button>
+                  <button 
                     onClick={() => handleMarkReceived(r.id)}
                     className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                     title="Mark Received"
@@ -1680,19 +2067,136 @@ const Reminders = () => {
           </h2>
           <div className="space-y-4">
             {receivedReminders.map((r: any) => (
-              <div key={r.id} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex justify-between items-center">
+              <div key={r.id} className="bg-slate-50 p-6 rounded-2xl border border-slate-100 flex justify-between items-center group">
                 <div>
                   <p className="font-bold text-slate-900">{r.person_name}</p>
                   <p className="text-sm text-slate-500">{r.projects?.name} • PKR {r.amount.toLocaleString()}</p>
                   <p className="text-xs text-slate-400 mt-1">Received on: {r.date}</p>
                 </div>
-                <CheckCircle className="text-emerald-500" size={20} />
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => {
+                        setEditingReminder(r);
+                        setIsEditModalOpen(true);
+                    }}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Edit"
+                  >
+                    <Edit size={20} />
+                  </button>
+                  {confirmDeleteId === r.id ? (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleDelete(r.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
+                      </button>
+                      <button 
+                         onClick={() => setConfirmDeleteId(null)}
+                         className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => setConfirmDeleteId(r.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                      title="Delete"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  )}
+                  <CheckCircle className="text-emerald-500" size={20} />
+                </div>
               </div>
             ))}
             {receivedReminders.length === 0 && <p className="text-slate-500 text-center py-8">No history yet.</p>}
           </div>
         </div>
       </div>
+
+      {isEditModalOpen && editingReminder && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4 backdrop-blur-sm">
+          <div className="flex min-h-full items-center justify-center py-8">
+            <div className="bg-white w-full max-w-md rounded-2xl p-8 shadow-2xl relative">
+              <h2 className="text-2xl font-bold text-slate-900 mb-6">Edit Collection</h2>
+              <form onSubmit={handleUpdate} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Project</label>
+                  <select
+                    value={editingReminder.project_id}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, project_id: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  >
+                    <option value="">Select Project</option>
+                    {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Person Name</label>
+                  <input
+                    type="text"
+                    value={editingReminder.person_name}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, person_name: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Amount (PKR)</label>
+                  <input
+                    type="number"
+                    value={editingReminder.amount}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, amount: Number(e.target.value) })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Date</label>
+                  <input
+                    type="date"
+                    value={editingReminder.date}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, date: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                  <select
+                    value={editingReminder.status}
+                    onChange={(e) => setEditingReminder({ ...editingReminder, status: e.target.value as 'pending' | 'received' })}
+                    className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    required
+                  >
+                    <option value="pending">Pending</option>
+                    <option value="received">Received</option>
+                  </select>
+                </div>
+                <div className="flex gap-4 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 px-6 py-3 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-100"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

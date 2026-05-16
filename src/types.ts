@@ -11,6 +11,10 @@ export interface Project {
   status: 'active' | 'completed';
   company_id?: string;
   split_percentage?: number;
+  pu_no?: string;
+  invoice_no?: string;
+  pu_amount?: number;
+  tax_amount?: number;
   created_at: string;
 }
 

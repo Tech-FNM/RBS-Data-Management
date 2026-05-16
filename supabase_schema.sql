@@ -21,3 +21,10 @@ CREATE POLICY "Enable delete for authenticated users only" ON companies FOR DELE
 -- Add split_percentage to projects table
 ALTER TABLE projects 
 ADD COLUMN IF NOT EXISTS split_percentage NUMERIC DEFAULT 5;
+
+-- Add PU/Invoice fields to projects table
+ALTER TABLE projects 
+ADD COLUMN IF NOT EXISTS pu_no TEXT,
+ADD COLUMN IF NOT EXISTS invoice_no TEXT,
+ADD COLUMN IF NOT EXISTS pu_amount NUMERIC,
+ADD COLUMN IF NOT EXISTS tax_amount NUMERIC;
