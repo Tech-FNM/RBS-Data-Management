@@ -41,6 +41,52 @@ function cn(...inputs: ClassValue[]) {
 
 // --- Components ---
 
+const RBSLogo = ({ className = '', showText = true, size = 'md' }: { className?: string, showText?: boolean, size?: 'sm' | 'md' | 'lg' }) => {
+  const iconSizeClass = size === 'sm' ? 'h-8' : size === 'lg' ? 'h-16' : 'h-10';
+  
+  return (
+    <div className={cn("flex items-center gap-3 select-none", className)}>
+      {/* Precision Engineered SVG Logo Emblem matching the uploaded photo */}
+      <svg 
+        className={cn("w-auto shrink-0", iconSizeClass)}
+        viewBox="0 0 100 90" 
+        fill="none" 
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Left column: Stylized 'R' structure in Charcoal Dark */}
+        <path 
+          d="M10,85 L10,48 L34,26 L34,85 L24,85 L24,58 L18,58 L18,85 Z M18,50 L26,50 L26,40 L18,40 Z" 
+          fill="#3a342b" 
+        />
+        {/* Center column: Stylized 'B' structure in Branded Gold */}
+        <path 
+          d="M38,22 L50,11 L62,22 L62,85 L38,85 Z M46,51 L54,51 L54,41 L46,41 Z M46,74 L54,74 L54,64 L46,64 Z" 
+          fill="#c5a059" 
+        />
+        {/* Right column: Stylized 'S' structure in Charcoal Dark */}
+        <path 
+          d="M66,85 L66,26 L90,48 L90,85 L80,85 L80,68 L74,68 L74,85 Z M74,48 L82,48 L82,58 L74,58 Z" 
+          fill="#3a342b" 
+        />
+      </svg>
+      
+      {showText && (
+        <div className="flex flex-col justify-center leading-none text-left">
+          <span className="text-[14px] font-black text-slate-900 tracking-wider leading-none">
+            RBS
+          </span>
+          <span className="text-[9px] font-extrabold text-indigo-600 tracking-wider leading-none mt-1 uppercase">
+            ENGINEERING
+          </span>
+          <span className="text-[6.5px] font-bold text-slate-800 tracking-widest leading-none mt-0.5 self-end">
+            SYSTEM
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -57,9 +103,8 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
     <>
       {/* Mobile/Tablet Header */}
       <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-white border-b border-slate-200 px-4 flex items-center justify-between shadow-sm">
-        <Link to="/" className="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <Briefcase className="text-indigo-600" size={20} />
-          RBS Panel
+        <Link to="/" className="flex items-center gap-2">
+          <RBSLogo size="sm" />
         </Link>
         <button 
           onClick={() => setIsOpen(!isOpen)}
@@ -83,10 +128,9 @@ const Sidebar = ({ onLogout }: { onLogout: () => void }) => {
         isOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
       )}>
         <div className="flex flex-col h-full">
-          <div className="p-6 hidden lg:block">
-            <Link to="/" className="text-xl font-bold text-slate-900 flex items-center gap-2">
-              <Briefcase className="text-indigo-600" />
-              RBS Panel
+          <div className="p-6 hidden lg:block border-b border-slate-100/60 mb-2">
+            <Link to="/" className="flex items-center gap-2">
+              <RBSLogo size="md" />
             </Link>
           </div>
           
@@ -172,11 +216,11 @@ const LoginPage = ({ onLogin }: { onLogin: () => void }) => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8 border border-slate-200">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-indigo-100 rounded-2xl mb-4">
-            <Briefcase className="text-indigo-600 w-8 h-8" />
+          <div className="flex justify-center mb-6">
+            <RBSLogo size="lg" className="scale-110" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Welcome Back</h1>
-          <p className="text-slate-500 mt-2">Sign in to manage your projects</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">RBS ENGINEERING SYSTEM</h1>
+          <p className="text-slate-500 text-sm mt-1">Sign in to manage your system workspace</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

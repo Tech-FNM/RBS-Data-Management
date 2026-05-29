@@ -74,12 +74,12 @@ const sendReminders = async () => {
       console.log(`sendReminders: Sending email for ${reminder.person_name} (ID: ${reminder.id})...`);
       try {
         await transporter.sendMail({
-          from: `"RBS Panel Reminders" <${process.env.EMAIL_USER}>`,
+          from: `"RBS System Reminders" <${process.env.EMAIL_USER}>`,
           to: process.env.REMINDER_EMAIL_RECIPIENT || process.env.EMAIL_USER,
           subject: `⚠️ Payment Reminder: ${reminder.person_name}`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-              <h2 style="color: #4f46e5;">Payment Reminder</h2>
+              <h2 style="color: #c5a059;">Payment Reminder</h2>
               <p>Hello,</p>
               <p>This is a reminder for a pending payment collection:</p>
               <ul>
@@ -89,7 +89,7 @@ const sendReminders = async () => {
                 <li><strong>Due Date:</strong> ${reminder.date}</li>
               </ul>
               <p>Please take necessary action.</p>
-              <p style="font-size: 12px; color: #666;">Managed by RBS Panel</p>
+              <p style="font-size: 12px; color: #666;">Managed by RBS Engineering System</p>
             </div>
           `,
         });
@@ -160,7 +160,7 @@ app.post("/api/test-email", async (req, res) => {
     await transporter.sendMail({
       from: `"RBS Test" <${user}>`,
       to: user,
-      subject: "RBS Panel - Test Email",
+      subject: "RBS Engineering System - Test Email",
       text: "If you received this, your email configuration is working correctly!",
     });
     

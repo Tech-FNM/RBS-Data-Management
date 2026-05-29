@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+@theme {
+  --color-indigo-50: #fbf9f4;
+  --color-indigo-100: #f5eedf;
+  --color-indigo-200: #ebdcb9;
+  --color-indigo-300: #dfc893;
+  --color-indigo-400: #d1b16c;
+  --color-indigo-500: #c5a059;   /* RBS Brand Gold primary */
+  --color-indigo-600: #b1873e;   /* RBS Branded rich gold hover */
+  --color-indigo-700: #936b2d;
+  --color-indigo-800: #745121;
+  --color-indigo-900: #5c3e19;
+  --color-indigo-950: #3a250f;
+
+  --color-slate-50: #faf9f6;     /* Branded light stone/sand */
+  --color-slate-100: #f4f2eb;    /* Light beige background elements */
+  --color-slate-200: #eae6db;    /* Soft beige borders */
+  --color-slate-300: #d4ccbd;    /* Grey-beige mid outlines */
+  --color-slate-400: #bab09e;    /* Muted captions */
+  --color-slate-500: #8c8270;    /* Warm slate gray descriptors */
+  --color-slate-600: #726858;    
+  --color-slate-700: #595144;    
+  --color-slate-800: #3a342b;    /* Charcoal/Black accents from RBS logo */
+  --color-slate-900: #211e19;    /* Pure Charcoal dark headers and text */
+  --color-slate-950: #110e0b;
+}
