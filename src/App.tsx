@@ -1454,7 +1454,7 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
 };
 
 const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expenses: Expense[], onUpdate: () => void }) => {
-  const [form, setForm] = useState({ expense_name: '', amount: 0, date: new Date().toISOString().split('T')[0], receipt_url: '' });
+  const [form, setForm] = useState({ expense_name: '', amount: 0, date: new Date().toISOString().split('T')[0], receipt_url: '', is_holiday: false });
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -1488,11 +1488,18 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('expenses').insert([{ ...form, project_id: projectId }]);
+    const expenseData = form.is_holiday 
+      ? { expense_name: 'Holiday', amount: 0, date: form.date, project_id: projectId }
+      : { ...form, project_id: projectId };
+      
+    // Remove is_holiday field before inserting
+    const { is_holiday, ...finalExpense } = expenseData as any;
+      
+    const { error } = await supabase.from('expenses').insert([finalExpense]);
     if (error) {
       alert('Error adding expense: ' + error.message);
     } else {
-      setForm(prev => ({ expense_name: '', amount: 0, date: prev.date, receipt_url: '' }));
+      setForm(prev => ({ expense_name: '', amount: 0, date: prev.date, receipt_url: '', is_holiday: false }));
       onUpdate();
     }
   };
@@ -1518,13 +1525,23 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
   return (
     <div className="space-y-8">
       <form onSubmit={handleAdd} className="flex flex-col md:grid md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl">
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            checked={form.is_holiday}
+            onChange={(e) => setForm({ ...form, is_holiday: e.target.checked })}
+            id="is-holiday"
+          />
+          <label htmlFor="is-holiday" className="text-sm text-slate-700">Mark as Holiday</label>
+        </div>
         <input
           type="text"
           value={form.expense_name}
           onChange={(e) => setForm({ ...form, expense_name: e.target.value })}
           placeholder="Expense Name"
           className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-          required
+          required={!form.is_holiday}
+          disabled={form.is_holiday}
         />
         <input
           type="number"
@@ -1532,7 +1549,8 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
           onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })}
           placeholder="Amount"
           className="px-4 py-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-          required
+          required={!form.is_holiday}
+          disabled={form.is_holiday}
         />
         <input
           type="date"
@@ -1871,9 +1889,9 @@ const DocumentTab = ({ projectId, docs, onUpdate }: { projectId: string, docs: P
         <button 
           type="submit" 
           disabled={!form.url || isUploading}
-          className="bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+          className="bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Attach Doc
+          {isUploading ? 'Uploading...' : 'Attach Doc'}
         </button>
       </form>
 
@@ -2446,7 +2464,11 @@ const Documents = () => {
                 {isUploading ? 'Uploading...' : form.url ? `File: ${form.name}` : 'Select File to Upload'}
               </label>
             </div>
-            <button type="submit" className="bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
+            <button 
+              type="submit" 
+              disabled={!form.url || isUploading}
+              className="bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Upload Document
             </button>
           </form>
