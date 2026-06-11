@@ -1492,7 +1492,7 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
     if (error) {
       alert('Error adding expense: ' + error.message);
     } else {
-      setForm({ expense_name: '', amount: 0, date: new Date().toISOString().split('T')[0], receipt_url: '' });
+      setForm(prev => ({ expense_name: '', amount: 0, date: prev.date, receipt_url: '' }));
       onUpdate();
     }
   };
@@ -1868,7 +1868,11 @@ const DocumentTab = ({ projectId, docs, onUpdate }: { projectId: string, docs: P
             {isUploading ? 'Uploading...' : form.url ? `File: ${form.name}` : 'Select File to Upload'}
           </label>
         </div>
-        <button type="submit" className="bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors">
+        <button 
+          type="submit" 
+          disabled={!form.url || isUploading}
+          className="bg-indigo-600 text-white py-2 rounded-xl font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
+        >
           Attach Doc
         </button>
       </form>
