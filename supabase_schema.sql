@@ -28,3 +28,7 @@ ADD COLUMN IF NOT EXISTS pu_no TEXT,
 ADD COLUMN IF NOT EXISTS invoice_no TEXT,
 ADD COLUMN IF NOT EXISTS pu_amount NUMERIC,
 ADD COLUMN IF NOT EXISTS tax_amount NUMERIC;
+
+-- Add is_external column to expenses table
+ALTER TABLE expenses 
+ADD COLUMN IF NOT EXISTS is_external BOOLEAN DEFAULT false;

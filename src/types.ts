@@ -43,6 +43,7 @@ export interface Expense {
   amount: number;
   date: string;
   receipt_url?: string;
+  is_external?: boolean;
   created_at: string;
 }
 

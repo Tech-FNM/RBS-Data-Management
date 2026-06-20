@@ -303,7 +303,7 @@ const Dashboard = () => {
 
           const totalSpent = (projectSalaries.reduce((sum: number, s: any) => sum + s.amount, 0) || 0) + 
                              (projectExpenses.reduce((sum: number, e: any) => sum + e.amount, 0) || 0);
-          const remaining = p.budget - totalSpent;
+          const remaining = p.budget - totalSpent - (p.tax_amount || 0);
           
           return {
             ...p,
@@ -386,7 +386,7 @@ const Dashboard = () => {
                 </div>
                 {p.pu_no && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">PU No</span>
+                    <span className="text-slate-500">PO No</span>
                     <span className="font-medium text-slate-700">{p.pu_no}</span>
                   </div>
                 )}
@@ -398,7 +398,7 @@ const Dashboard = () => {
                 )}
                 {p.pu_amount > 0 && (
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500">PU Amount</span>
+                    <span className="text-slate-500">PO Amount</span>
                     <span className="font-semibold text-indigo-600">PKR {p.pu_amount.toLocaleString()}</span>
                   </div>
                 )}
@@ -630,7 +630,7 @@ const ProjectList = () => {
           <div className="relative flex-grow md:w-64">
             <input
               type="text"
-              placeholder="Search name, PU, or Invoice..."
+              placeholder="Search name, PO, or Invoice..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
@@ -706,7 +706,7 @@ const ProjectList = () => {
               </div>
               {project.pu_no && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">PU No</span>
+                  <span className="text-slate-500">PO No</span>
                   <span className="font-semibold text-slate-900">{project.pu_no}</span>
                 </div>
               )}
@@ -718,7 +718,7 @@ const ProjectList = () => {
               )}
               {project.pu_amount > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">PU Amount</span>
+                  <span className="text-slate-500">PO Amount</span>
                   <span className="font-semibold text-indigo-600">PKR {project.pu_amount.toLocaleString()}</span>
                 </div>
               )}
@@ -788,13 +788,13 @@ const ProjectList = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">PU No (Optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">PO No (Optional)</label>
                     <input
                       type="text"
                       value={newProject.pu_no}
                       onChange={(e) => setNewProject({ ...newProject, pu_no: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                      placeholder="Enter PU No"
+                      placeholder="Enter PO No"
                     />
                   </div>
                   <div>
@@ -922,13 +922,13 @@ const ProjectList = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">PU No (Optional)</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">PO No (Optional)</label>
                     <input
                       type="text"
                       value={editingProject.pu_no}
                       onChange={(e) => setEditingProject({ ...editingProject, pu_no: e.target.value })}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none"
-                      placeholder="Enter PU No"
+                      placeholder="Enter PO No"
                     />
                   </div>
                   <div>
@@ -1085,7 +1085,7 @@ const ProjectDetail = () => {
     // 1. Overview Sheet
     const totalSpent = (salaries.reduce((acc, curr) => acc + curr.amount, 0) || 0) + 
                        (expenses.reduce((acc, curr) => acc + curr.amount, 0) || 0);
-    const remaining = project.budget - totalSpent;
+    const remaining = project.budget - totalSpent - (project.tax_amount || 0);
     
     const totalReceived = reminders.reduce((acc, curr) => acc + curr.amount, 0) || 0;
     
@@ -1094,9 +1094,9 @@ const ProjectDetail = () => {
       [''],
       ['Project Name', project.name],
       ['Total Budget', `PKR ${project.budget.toLocaleString()}`],
-      ['PU No', project.pu_no || 'N/A'],
+      ['PO No', project.pu_no || 'N/A'],
       ['Invoice No', project.invoice_no || 'N/A'],
-      ['PU Amount', `PKR ${(project.pu_amount || 0).toLocaleString()}`],
+      ['PO Amount', `PKR ${(project.pu_amount || 0).toLocaleString()}`],
       ['Tax Amount', `PKR ${(project.tax_amount || 0).toLocaleString()}`],
       ['Total Received', `PKR ${totalReceived.toLocaleString()}`],
       ['Total Spent', `PKR ${totalSpent.toLocaleString()}`],
@@ -1153,9 +1153,9 @@ const ProjectDetail = () => {
           <h1 className="text-3xl font-bold text-slate-900">{project.name}</h1>
           <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2">
             <p className="text-slate-500">Budget: <span className="font-semibold text-slate-700 text-sm">PKR {project.budget.toLocaleString()}</span></p>
-            {project.pu_no && <p className="text-slate-500">PU No: <span className="font-semibold text-slate-700 text-sm">{project.pu_no}</span></p>}
+            {project.pu_no && <p className="text-slate-500">PO No: <span className="font-semibold text-slate-700 text-sm">{project.pu_no}</span></p>}
             {project.invoice_no && <p className="text-slate-500">Invoice: <span className="font-semibold text-slate-700 text-sm">{project.invoice_no}</span></p>}
-            {project.pu_amount > 0 && <p className="text-slate-500">PU Amount: <span className="font-semibold text-indigo-600 text-sm">PKR {project.pu_amount.toLocaleString()}</span></p>}
+            {project.pu_amount > 0 && <p className="text-slate-500">PO Amount: <span className="font-semibold text-indigo-600 text-sm">PKR {project.pu_amount.toLocaleString()}</span></p>}
             {project.tax_amount > 0 && <p className="text-slate-500">Tax Amount: <span className="font-semibold text-red-500 text-sm">PKR {project.tax_amount.toLocaleString()}</span></p>}
           </div>
         </div>
@@ -1201,6 +1201,7 @@ const ProjectDetail = () => {
           { id: 'employees', label: 'Employees', icon: Users },
           { id: 'salaries', label: 'Salaries', icon: DollarSign },
           { id: 'expenses', label: 'Expenses', icon: Receipt },
+          { id: 'external_purchases', label: 'External Purchases', icon: Receipt },
           { id: 'reminders', label: 'Payments History', icon: History },
           { id: 'documents', label: 'Documents', icon: FileUp },
         ].map((tab) => (
@@ -1221,7 +1222,8 @@ const ProjectDetail = () => {
       <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm min-h-[400px]">
         {activeTab === 'employees' && <EmployeeTab projectId={id!} employees={employees} onUpdate={fetchData} salaries={salaries} />}
         {activeTab === 'salaries' && <SalaryTab employees={employees} onUpdate={fetchData} salaries={salaries} />}
-        {activeTab === 'expenses' && <ExpenseTab projectId={id!} expenses={expenses} onUpdate={fetchData} />}
+        {activeTab === 'expenses' && <ExpenseTab projectId={id!} expenses={expenses} salaries={salaries} employees={employees} onUpdate={fetchData} />}
+        {activeTab === 'external_purchases' && <ExternalPurchasesTab expenses={expenses} onUpdate={fetchData} />}
         {activeTab === 'reminders' && <HistoryTab reminders={reminders} onUpdate={fetchData} projects={allProjects} />}
         {activeTab === 'documents' && <DocumentTab projectId={id!} docs={docs} onUpdate={fetchData} />}
       </div>
@@ -1234,11 +1236,29 @@ const ProjectDetail = () => {
 const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: string, employees: Employee[], onUpdate: () => void, salaries: Salary[] }) => {
   const [name, setName] = useState('');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState('name_az');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+
+  const sortedEmployees = [...employees].sort((a, b) => {
+    switch (sortBy) {
+      case 'name_za': return b.name.localeCompare(a.name);
+      case 'name_az':
+      default: return a.name.localeCompare(b.name);
+    }
+  });
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     await supabase.from('employees').insert([{ project_id: projectId, name }]);
     setName('');
+    onUpdate();
+  };
+
+  const handleUpdate = async (id: string) => {
+    await supabase.from('employees').update({ name: editName }).eq('id', id);
+    setEditingId(null);
+    setEditName('');
     onUpdate();
   };
 
@@ -1276,50 +1296,137 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
         </button>
       </form>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-slate-500 text-sm border-b border-slate-100">
-              <th className="pb-4 font-medium">Name</th>
-              <th className="pb-4 font-medium">Total Paid</th>
-              <th className="pb-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {employees.map((emp) => {
-              const totalPaid = salaries.filter(s => s.employee_id === emp.id).reduce((acc, curr) => acc + curr.amount, 0);
-              return (
-                <tr key={emp.id} className="text-slate-900">
-                  <td className="py-4 font-medium">{emp.name}</td>
-                  <td className="py-4">PKR {totalPaid.toLocaleString()}</td>
-                  <td className="py-4 text-right">
-                    {confirmDeleteId === emp.id ? (
+      <div className="">
+        <div className="mb-4">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 rounded-xl border border-slate-200">
+            <option value="name_az">Name (A-Z)</option>
+            <option value="name_za">Name (Z-A)</option>
+          </select>
+        </div>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-slate-500 text-sm border-b border-slate-100">
+                <th className="pb-4 font-medium">Name</th>
+                <th className="pb-4 font-medium">Total Paid</th>
+                <th className="pb-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {sortedEmployees.map((emp) => {
+                const totalPaid = salaries.filter(s => s.employee_id === emp.id).reduce((acc, curr) => acc + curr.amount, 0);
+                return (
+                  <tr key={emp.id} className="text-slate-900">
+                    <td className="py-4 font-medium">
+                      {editingId === emp.id ? (
+                        <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            className="px-2 py-1 border border-slate-200 rounded"
+                        />
+                      ) : (
+                        emp.name
+                      )}
+                    </td>
+                    <td className="py-4">PKR {totalPaid.toLocaleString()}</td>
+                    <td className="py-4 text-right">
                       <div className="flex gap-1 justify-end">
-                        <button 
-                          onClick={() => handleDelete(emp.id)}
-                          className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
-                        >
-                          CONFIRM
-                        </button>
-                        <button 
-                          onClick={() => setConfirmDeleteId(null)}
-                          className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
-                        >
-                          CANCEL
-                        </button>
+                        {editingId === emp.id ? (
+                           <>
+                            <button onClick={() => handleUpdate(emp.id)} className="text-green-500 p-2"><CheckCircle size={18} /></button>
+                            <button onClick={() => setEditingId(null)} className="text-gray-500 p-2"><XCircle size={18} /></button>
+                          </>
+                        ) : (
+                           <>
+                           <button onClick={() => { setEditingId(emp.id); setEditName(emp.name); }} className="text-indigo-500 p-2"><Edit size={18} /></button>
+                           {confirmDeleteId === emp.id ? (
+                          <div className="flex gap-1 justify-end">
+                            <button 
+                              onClick={() => handleDelete(emp.id)}
+                              className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                            >
+                              CONFIRM
+                            </button>
+                            <button 
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                            >
+                              CANCEL
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setConfirmDeleteId(emp.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                        </>
+                        )}
                       </div>
-                    ) : (
-                      <button onClick={() => setConfirmDeleteId(emp.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                        <Trash2 size={18} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-4">
+          {employees.map((emp) => {
+            const totalPaid = salaries.filter(s => s.employee_id === emp.id).reduce((acc, curr) => acc + curr.amount, 0);
+            return (
+              <div key={emp.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+                <div>
+                  <p className="font-semibold text-slate-900">{emp.name}</p>
+                  <p className="text-sm text-slate-500">Total Paid: PKR {totalPaid.toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { setEditingId(emp.id); setEditName(emp.name); }} className="text-indigo-500 p-2"><Edit size={18} /></button>
+                  {confirmDeleteId === emp.id ? (
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={() => handleDelete(emp.id)}
+                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                      >
+                        CONFIRM
                       </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                      <button 
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                      >
+                        CANCEL
+                      </button>
+                    </div>
+                  ) : (
+                    <button onClick={() => setConfirmDeleteId(emp.id)} className="text-red-500 p-2">
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
+      {editingId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4">Edit Employee</h3>
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-4"
+            />
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-slate-100 rounded-xl">Cancel</button>
+              <button onClick={() => handleUpdate(editingId)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1327,6 +1434,27 @@ const EmployeeTab = ({ projectId, employees, onUpdate, salaries }: { projectId: 
 const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], onUpdate: () => void, salaries: Salary[] }) => {
   const [form, setForm] = useState({ employee_id: '', amount: 0, date: new Date().toISOString().split('T')[0], type: 'daily' as 'advance' | 'daily' });
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ amount: 0, date: '', type: 'daily' as 'advance' | 'daily' });
+
+  const sortedSalaries = [...salaries].sort((a, b) => {
+    switch (sortBy) {
+      case 'name_az': return (a.employees?.name || '').localeCompare(b.employees?.name || '');
+      case 'name_za': return (b.employees?.name || '').localeCompare(a.employees?.name || '');
+      case 'price_low': return a.amount - b.amount;
+      case 'price_high': return b.amount - a.amount;
+      case 'date_asc': return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'date_desc':
+      default: return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+  });
+
+  const handleUpdate = async (id: string) => {
+    await supabase.from('salaries').update(editForm).eq('id', id);
+    setEditingId(null);
+    onUpdate();
+  };
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1397,66 +1525,189 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
         </button>
       </form>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-slate-500 text-sm border-b border-slate-100">
-              <th className="pb-4 font-medium">Employee</th>
-              <th className="pb-4 font-medium">Amount</th>
-              <th className="pb-4 font-medium">Date</th>
-              <th className="pb-4 font-medium">Type</th>
-              <th className="pb-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {salaries.map((s: any) => (
-              <tr key={s.id} className="text-slate-900">
-                <td className="py-4 font-medium">{s.employees?.name}</td>
-                <td className="py-4">PKR {s.amount.toLocaleString()}</td>
-                <td className="py-4">{s.date}</td>
-                <td className="py-4">
-                  <span className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium",
-                    s.type === 'advance' ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
-                  )}>
-                    {s.type.toUpperCase()}
-                  </span>
-                </td>
-                <td className="py-4 text-right">
-                  {confirmDeleteId === s.id ? (
-                    <div className="flex gap-1 justify-end">
-                      <button 
-                        onClick={() => handleDelete(s.id)}
-                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
-                      >
-                        CONFIRM
-                      </button>
-                      <button 
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
-                      >
-                        CANCEL
-                      </button>
-                    </div>
-                  ) : (
-                    <button onClick={() => setConfirmDeleteId(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                      <Trash2 size={18} />
-                    </button>
-                  )}
-                </td>
+      <div className="">
+        <div className="mb-4">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 rounded-xl border border-slate-200">
+            <option value="date_desc">Date (Newest First)</option>
+            <option value="date_asc">Date (Oldest First)</option>
+            <option value="name_az">Employee (A-Z)</option>
+            <option value="name_za">Employee (Z-A)</option>
+            <option value="price_low">Amount (Low-High)</option>
+            <option value="price_high">Amount (High-Low)</option>
+          </select>
+        </div>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-slate-500 text-sm border-b border-slate-100">
+                <th className="pb-4 font-medium">Employee</th>
+                <th className="pb-4 font-medium">Amount</th>
+                <th className="pb-4 font-medium">Date</th>
+                <th className="pb-4 font-medium">Type</th>
+                <th className="pb-4 font-medium text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {sortedSalaries.map((s: any) => (
+                <tr key={s.id} className="text-slate-900">
+                  <td className="py-4 font-medium">{s.employees?.name}</td>
+                  <td className="py-4">PKR {s.amount.toLocaleString()}</td>
+                  <td className="py-4">{s.date}</td>
+                  <td className="py-4">
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-full text-xs font-medium",
+                      s.type === 'advance' ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+                    )}>
+                      {s.type.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                        <button onClick={() => { setEditingId(s.id); setEditForm({ amount: s.amount, date: s.date, type: s.type }); }} className="text-indigo-500 p-2">
+                            <Edit size={18} />
+                        </button>
+                        {confirmDeleteId === s.id ? (
+                          <div className="flex gap-1 justify-end">
+                            <button 
+                              onClick={() => handleDelete(s.id)}
+                              className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                            >
+                              CONFIRM
+                            </button>
+                            <button 
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                            >
+                              CANCEL
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setConfirmDeleteId(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-4">
+          {salaries.map((s: any) => (
+            <div key={s.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-slate-900">{s.employees?.name}</p>
+                <p className="text-sm text-slate-500">PKR {s.amount.toLocaleString()} • {s.date}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-xs font-medium",
+                  s.type === 'advance' ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700"
+                )}>
+                  {s.type.toUpperCase()}
+                </span>
+                {confirmDeleteId === s.id ? (
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => handleDelete(s.id)}
+                      className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                    >
+                      CONFIRM
+                    </button>
+                    <button 
+                      onClick={() => setConfirmDeleteId(null)}
+                      className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => setConfirmDeleteId(s.id)} className="text-red-500 p-2">
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
+      {editingId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4">Edit Salary</h3>
+            <input
+              type="number"
+              value={editForm.amount}
+              onChange={(e) => setEditForm({...editForm, amount: Number(e.target.value)})}
+              className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-4"
+            />
+            <input
+              type="date"
+              value={editForm.date}
+              onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+              className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-4"
+            />
+            <select
+              value={editForm.type}
+              onChange={(e) => setEditForm({...editForm, type: e.target.value as 'advance' | 'daily'})}
+              className="w-full px-4 py-2 border border-slate-300 rounded-xl mb-4"
+            >
+              <option value="daily">Daily</option>
+              <option value="advance">Advance</option>
+            </select>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-slate-100 rounded-xl">Cancel</button>
+              <button onClick={() => handleUpdate(editingId)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expenses: Expense[], onUpdate: () => void }) => {
-  const [form, setForm] = useState({ expense_name: '', amount: 0, date: new Date().toISOString().split('T')[0], receipt_url: '', is_holiday: false });
+const ExpenseTab = ({ projectId, expenses, salaries, employees, onUpdate }: { projectId: string, expenses: Expense[], salaries: Salary[], employees: Employee[], onUpdate: () => void }) => {
+  const [form, setForm] = useState({ expense_name: '', amount: 0, date: new Date().toISOString().split('T')[0], receipt_url: '', is_holiday: false, is_external: false });
   const [isUploading, setIsUploading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ expense_name: '', amount: 0, date: '', receipt_url: '' });
+
+  const handleUpdate = async (id: string) => {
+    await supabase.from('expenses').update({ expense_name: editForm.expense_name, amount: editForm.amount, date: editForm.date, receipt_url: editForm.receipt_url }).eq('id', id);
+    setEditingId(null);
+    onUpdate();
+  };
+
+  const projectSalaries = salaries.filter(s => employees.find(e => e.id === s.employee_id)?.project_id === projectId);
+  
+  const allItems = [
+    ...expenses.map(e => ({ ...e, type: 'expense' as const })),
+    ...projectSalaries.map(s => ({ 
+      id: s.id, 
+      expense_name: `Salary (${employees.find(e => e.id === s.employee_id)?.name || 'Unknown'})`,
+      amount: s.amount,
+      date: s.date,
+      type: 'salary' as const
+    }))
+  ];
+
+  const sortedItems = [...allItems].sort((a, b) => {
+    switch (sortBy) {
+      case 'name_az': return a.expense_name.localeCompare(b.expense_name);
+      case 'name_za': return b.expense_name.localeCompare(a.expense_name);
+      case 'price_low': return a.amount - b.amount;
+      case 'price_high': return b.amount - a.amount;
+      case 'date_asc': return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'date_desc':
+      default: return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+  });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1489,7 +1740,7 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     const expenseData = form.is_holiday 
-      ? { expense_name: 'Holiday', amount: 0, date: form.date, project_id: projectId }
+      ? { expense_name: 'Holiday', amount: 0, date: form.date, project_id: projectId, is_external: false }
       : { ...form, project_id: projectId };
       
     // Remove is_holiday field before inserting
@@ -1499,7 +1750,7 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
     if (error) {
       alert('Error adding expense: ' + error.message);
     } else {
-      setForm(prev => ({ expense_name: '', amount: 0, date: prev.date, receipt_url: '', is_holiday: false }));
+      setForm(prev => ({ expense_name: '', amount: 0, date: prev.date, receipt_url: '', is_holiday: false, is_external: false }));
       onUpdate();
     }
   };
@@ -1525,14 +1776,25 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
   return (
     <div className="space-y-8">
       <form onSubmit={handleAdd} className="flex flex-col md:grid md:grid-cols-2 gap-4 bg-slate-50 p-6 rounded-2xl">
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={form.is_holiday}
-            onChange={(e) => setForm({ ...form, is_holiday: e.target.checked })}
-            id="is-holiday"
-          />
-          <label htmlFor="is-holiday" className="text-sm text-slate-700">Mark as Holiday</label>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.is_holiday}
+              onChange={(e) => setForm({ ...form, is_holiday: e.target.checked })}
+              id="is-holiday"
+            />
+            <label htmlFor="is-holiday" className="text-sm text-slate-700">Mark as Holiday</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.is_external}
+              onChange={(e) => setForm({ ...form, is_external: e.target.checked })}
+              id="is-external"
+            />
+            <label htmlFor="is-external" className="text-sm text-slate-700">External Purchasing</label>
+          </div>
         </div>
         <input
           type="text"
@@ -1581,11 +1843,224 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
         </button>
       </form>
 
-      <div className="overflow-x-auto">
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold mb-4">All Expenses</h3>
+        <div className="mb-4">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 rounded-xl border border-slate-200">
+            <option value="date_desc">Date (Newest First)</option>
+            <option value="date_asc">Date (Oldest First)</option>
+            <option value="name_az">Name (A-Z)</option>
+            <option value="name_za">Name (Z-A)</option>
+            <option value="price_low">Price (Low-High)</option>
+            <option value="price_high">Price (High-Low)</option>
+          </select>
+        </div>
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-slate-500 text-sm border-b border-slate-100">
+                <th className="pb-4 font-medium">Expense Name</th>
+                <th className="pb-4 font-medium">Amount</th>
+                <th className="pb-4 font-medium">Date</th>
+                <th className="pb-4 font-medium">Receipt</th>
+                <th className="pb-4 font-medium text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {sortedItems.map((e) => (
+                <tr key={e.id} className="text-slate-900">
+                  <td className="py-4 font-medium">{e.expense_name}</td>
+                  <td className="py-4">PKR {e.amount.toLocaleString()}</td>
+                  <td className="py-4">{e.date}</td>
+                  <td className="py-4">
+                    {'receipt_url' in e && e.receipt_url ? (
+                      <a href={e.receipt_url} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline flex items-center gap-1">
+                        <FileText size={14} /> View
+                      </a>
+                    ) : 'N/A'}
+                  </td>
+                  <td className="py-4 text-right">
+                    {e.type === 'expense' && (
+                        <div className="flex justify-end gap-2">
+                        <button onClick={() => { setEditingId(e.id); setEditForm({ expense_name: e.expense_name, amount: e.amount, date: e.date, receipt_url: e.receipt_url || '' }); }} className="text-indigo-500 p-2">
+                            <Edit size={18} />
+                        </button>
+                        {confirmDeleteId === e.id ? (
+                          <div className="flex gap-1 justify-end">
+                            <button 
+                              onClick={() => handleDelete(e.id)}
+                              className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                            >
+                              CONFIRM
+                            </button>
+                            <button 
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                            >
+                              CANCEL
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setConfirmDeleteId(e.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                        </div>
+                    )}
+                    {e.type === 'salary' && <span className="text-slate-400 text-xs">Salary Payment</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-4">
+          {sortedItems.map((e) => (
+            <div key={e.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-slate-900">{e.expense_name}</p>
+                <p className="text-sm text-slate-500">PKR {e.amount.toLocaleString()} • {e.date}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                {e.type === 'expense' && (
+                  <>
+                    <button onClick={() => { setEditingId(e.id); setEditForm({ expense_name: e.expense_name, amount: e.amount, date: e.date, receipt_url: e.receipt_url || '' }); }} className="text-indigo-500 p-2">
+                      <Edit size={18} />
+                    </button>
+                    {confirmDeleteId === e.id ? (
+                      <div className="flex gap-1">
+                        <button 
+                          onClick={() => handleDelete(e.id)}
+                          className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                        >
+                          CONFIRM
+                        </button>
+                        <button 
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                        >
+                          CANCEL
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(e.id)} className="text-red-500 p-2">
+                        <Trash2 size={18} />
+                      </button>
+                    )}
+                  </>
+                )}
+                {'receipt_url' in e && e.receipt_url && (
+                  <a href={e.receipt_url} target="_blank" rel="noreferrer" className="text-indigo-600">
+                    <FileText size={18} />
+                  </a>
+                )}
+                {e.type === 'salary' && <span className="text-slate-400 text-xs">Salary</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {editingId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4">Edit Expense</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Expense Name</label>
+                <input
+                  type="text"
+                  value={editForm.expense_name}
+                  onChange={(e) => setEditForm({...editForm, expense_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
+                <input
+                  type="number"
+                  value={editForm.amount === 0 ? '' : editForm.amount}
+                  onChange={(e) => setEditForm({...editForm, amount: Number(e.target.value)})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-slate-100 rounded-xl">Cancel</button>
+              <button onClick={() => handleUpdate(editingId)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ExternalPurchasesTab = ({ expenses, onUpdate }: { expenses: any[], onUpdate: () => void }) => {
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState('date_desc');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ expense_name: '', amount: 0, date: '', receipt_url: '' });
+
+  const handleUpdate = async (id: string) => {
+    await supabase.from('expenses').update({ expense_name: editForm.expense_name, amount: editForm.amount, date: editForm.date, receipt_url: editForm.receipt_url }).eq('id', id);
+    setEditingId(null);
+    onUpdate();
+  };
+
+  const filteredExpenses = expenses.filter(e => e.is_external);
+  const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+    switch (sortBy) {
+      case 'name_az': return a.expense_name.localeCompare(b.expense_name);
+      case 'name_za': return b.expense_name.localeCompare(a.expense_name);
+      case 'price_low': return a.amount - b.amount;
+      case 'price_high': return b.amount - a.amount;
+      case 'date_asc': return new Date(a.date).getTime() - new Date(b.date).getTime();
+      case 'date_desc':
+      default: return new Date(b.date).getTime() - new Date(a.date).getTime();
+    }
+  });
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error) {
+      alert('Error deleting purchase: ' + error.message);
+    } else {
+      setConfirmDeleteId(null);
+      onUpdate();
+    }
+  };
+
+  return (
+    <div className="">
+      <h3 className="text-lg font-semibold mb-4">External Purchases</h3>
+      <div className="mb-4">
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-4 py-2 rounded-xl border border-slate-200">
+            <option value="date_desc">Date (Newest First)</option>
+            <option value="date_asc">Date (Oldest First)</option>
+            <option value="name_az">Name (A-Z)</option>
+            <option value="name_za">Name (Z-A)</option>
+            <option value="price_low">Amount (Low-High)</option>
+            <option value="price_high">Amount (High-Low)</option>
+          </select>
+      </div>
+      {/* Desktop Table */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full text-left">
           <thead>
             <tr className="text-slate-500 text-sm border-b border-slate-100">
-              <th className="pb-4 font-medium">Expense Name</th>
+              <th className="pb-4 font-medium">Name</th>
               <th className="pb-4 font-medium">Amount</th>
               <th className="pb-4 font-medium">Date</th>
               <th className="pb-4 font-medium">Receipt</th>
@@ -1593,7 +2068,7 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {expenses.map((e) => (
+            {sortedExpenses.map((e) => (
               <tr key={e.id} className="text-slate-900">
                 <td className="py-4 font-medium">{e.expense_name}</td>
                 <td className="py-4">PKR {e.amount.toLocaleString()}</td>
@@ -1606,32 +2081,117 @@ const ExpenseTab = ({ projectId, expenses, onUpdate }: { projectId: string, expe
                   ) : 'N/A'}
                 </td>
                 <td className="py-4 text-right">
-                  {confirmDeleteId === e.id ? (
-                    <div className="flex gap-1 justify-end">
-                      <button 
-                        onClick={() => handleDelete(e.id)}
-                        className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
-                      >
-                        CONFIRM
-                      </button>
-                      <button 
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
-                      >
-                        CANCEL
-                      </button>
+                    <div className="flex justify-end gap-2">
+                        <button onClick={() => { setEditingId(e.id); setEditForm({ expense_name: e.expense_name, amount: e.amount, date: e.date, receipt_url: e.receipt_url || '' }); }} className="text-indigo-500 p-2"><Edit size={18} /></button>
+                          {confirmDeleteId === e.id ? (
+                            <div className="flex gap-1 justify-end">
+                              <button 
+                                onClick={() => handleDelete(e.id)}
+                                className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                              >
+                                CONFIRM
+                              </button>
+                              <button 
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                              >
+                                CANCEL
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => setConfirmDeleteId(e.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                              <Trash2 size={18} />
+                            </button>
+                          )}
                     </div>
-                  ) : (
-                    <button onClick={() => setConfirmDeleteId(e.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                      <Trash2 size={18} />
-                    </button>
-                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {expenses.filter(e => e.is_external).map((e) => (
+          <div key={e.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+            <div>
+              <p className="font-semibold text-slate-900">{e.expense_name}</p>
+              <p className="text-sm text-slate-500">PKR {e.amount.toLocaleString()} • {e.date}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setEditingId(e.id); setEditForm({ expense_name: e.expense_name, amount: e.amount, date: e.date, receipt_url: e.receipt_url || '' }); }} className="text-indigo-500 p-2">
+                <Edit size={18} />
+              </button>
+              {confirmDeleteId === e.id ? (
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => handleDelete(e.id)}
+                    className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                  >
+                    CONFIRM
+                  </button>
+                  <button 
+                    onClick={() => setConfirmDeleteId(null)}
+                    className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setConfirmDeleteId(e.id)} className="text-red-500 p-2">
+                  <Trash2 size={18} />
+                </button>
+              )}
+              {e.receipt_url && (
+                <a href={e.receipt_url} target="_blank" rel="noreferrer" className="text-indigo-600">
+                  <FileText size={18} />
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {editingId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white p-6 rounded-2xl w-full max-w-sm">
+            <h3 className="text-xl font-bold mb-4">Edit External Purchase</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={editForm.expense_name}
+                  onChange={(e) => setEditForm({...editForm, expense_name: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Amount</label>
+                <input
+                  type="number"
+                  value={editForm.amount === 0 ? '' : editForm.amount}
+                  onChange={(e) => setEditForm({...editForm, amount: Number(e.target.value)})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                  className="w-full px-4 py-2 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setEditingId(null)} className="px-4 py-2 bg-slate-100 rounded-xl">Cancel</button>
+              <button onClick={() => handleUpdate(editingId)} className="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1678,59 +2238,88 @@ const HistoryTab = ({ reminders, onUpdate, projects }: { reminders: Reminder[], 
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-bold text-slate-900">Payment Received History</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="text-slate-500 text-sm border-b border-slate-100">
-              <th className="pb-4 font-medium">Person</th>
-              <th className="pb-4 font-medium">Amount</th>
-              <th className="pb-4 font-medium">Date</th>
-              <th className="pb-4 font-medium text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {reminders.map((r) => (
-              <tr key={r.id} className="text-slate-900">
-                <td className="py-4 font-medium">{r.person_name}</td>
-                <td className="py-4">PKR {r.amount.toLocaleString()}</td>
-                <td className="py-4">{r.date}</td>
-                <td className="py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button 
-                      onClick={() => {
-                        setEditingReminder(r);
-                        setIsEditModalOpen(true);
-                      }} 
-                      className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
-                    >
-                      <Edit size={18} />
-                    </button>
-                    {confirmDeleteId === r.id ? (
-                      <div className="flex gap-1">
-                        <button 
-                          onClick={() => handleDelete(r.id)}
-                          className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
-                        >
-                          CONFIRM
-                        </button>
-                        <button 
-                          onClick={() => setConfirmDeleteId(null)}
-                          className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
-                        >
-                          CANCEL
-                        </button>
-                      </div>
-                    ) : (
-                      <button onClick={() => setConfirmDeleteId(r.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                        <Trash2 size={18} />
-                      </button>
-                    )}
-                  </div>
-                </td>
+      <div className="">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-slate-500 text-sm border-b border-slate-100">
+                <th className="pb-4 font-medium">Person</th>
+                <th className="pb-4 font-medium">Amount</th>
+                <th className="pb-4 font-medium">Date</th>
+                <th className="pb-4 font-medium text-right">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {reminders.map((r) => (
+                <tr key={r.id} className="text-slate-900">
+                  <td className="py-4 font-medium">{r.person_name}</td>
+                  <td className="py-4">PKR {r.amount.toLocaleString()}</td>
+                  <td className="py-4">{r.date}</td>
+                  <td className="py-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button 
+                        onClick={() => {
+                          setEditingReminder(r);
+                          setIsEditModalOpen(true);
+                        }} 
+                        className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                      >
+                        <Edit size={18} />
+                      </button>
+                      {confirmDeleteId === r.id ? (
+                        <div className="flex gap-1">
+                          <button 
+                            onClick={() => handleDelete(r.id)}
+                            className="px-2 py-1 bg-red-600 text-white text-[10px] font-bold rounded"
+                          >
+                            CONFIRM
+                          </button>
+                          <button 
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold rounded"
+                          >
+                            CANCEL
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDeleteId(r.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden space-y-4">
+          {reminders.map((r) => (
+            <div key={r.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-slate-900">{r.person_name}</p>
+                <p className="text-sm text-slate-500">PKR {r.amount.toLocaleString()} • {r.date}</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button 
+                    onClick={() => {
+                      setEditingReminder(r);
+                      setIsEditModalOpen(true);
+                    }} 
+                    className="text-indigo-600 p-2 rounded-lg"
+                >
+                  <Edit size={18} />
+                </button>
+                <button onClick={() => setConfirmDeleteId(confirmDeleteId === r.id ? null : r.id)} className="text-red-500 p-2">
+                  <Trash2 size={18} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {isEditModalOpen && editingReminder && (
