@@ -1597,7 +1597,7 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
 
         {/* Mobile Cards */}
         <div className="md:hidden space-y-4">
-          {salaries.map((s: any) => (
+          {sortedSalaries.map((s: any) => (
             <div key={s.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex justify-between items-center">
               <div>
                 <p className="font-semibold text-slate-900">{s.employees?.name}</p>
@@ -1610,6 +1610,9 @@ const SalaryTab = ({ employees, onUpdate, salaries }: { employees: Employee[], o
                 )}>
                   {s.type.toUpperCase()}
                 </span>
+                <button onClick={() => { setEditingId(s.id); setEditForm({ amount: s.amount, date: s.date, type: s.type }); }} className="text-indigo-500 p-2">
+                  <Edit size={18} />
+                </button>
                 {confirmDeleteId === s.id ? (
                   <div className="flex gap-1">
                     <button 
