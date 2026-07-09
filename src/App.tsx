@@ -1083,8 +1083,10 @@ const ProjectDetail = () => {
     const wb = XLSX.utils.book_new();
     
     // 1. Overview Sheet
-    const totalSpent = (salaries.reduce((acc, curr) => acc + curr.amount, 0) || 0) + 
-                       (expenses.reduce((acc, curr) => acc + curr.amount, 0) || 0);
+    const totalSalaries = salaries.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+    const totalInternalExpenses = expenses.filter(e => !e.is_external).reduce((acc, curr) => acc + curr.amount, 0) || 0;
+    const totalExternalPurchases = expenses.filter(e => e.is_external).reduce((acc, curr) => acc + curr.amount, 0) || 0;
+    const totalSpent = totalSalaries + totalInternalExpenses + totalExternalPurchases;
     const remaining = project.budget - totalSpent - (project.tax_amount || 0);
     
     const totalReceived = reminders.reduce((acc, curr) => acc + curr.amount, 0) || 0;
@@ -1097,10 +1099,16 @@ const ProjectDetail = () => {
       ['PO No', project.pu_no || 'N/A'],
       ['Invoice No', project.invoice_no || 'N/A'],
       ['PO Amount', `PKR ${(project.pu_amount || 0).toLocaleString()}`],
+      ['Tax Percentage', `${project.tax_percentage || 0}%`],
+      ['Tax Base', project.tax_base === 'pu_amount' ? 'PO Amount' : 'Total Budget'],
       ['Tax Amount', `PKR ${(project.tax_amount || 0).toLocaleString()}`],
       ['Total Received', `PKR ${totalReceived.toLocaleString()}`],
       ['Total Spent', `PKR ${totalSpent.toLocaleString()}`],
+      ['  - Total Salaries Paid', `PKR ${totalSalaries.toLocaleString()}`],
+      ['  - Total Internal Expenses', `PKR ${totalInternalExpenses.toLocaleString()}`],
+      ['  - Total External Purchases', `PKR ${totalExternalPurchases.toLocaleString()}`],
       ['Remaining Balance', `PKR ${remaining.toLocaleString()}`],
+      ['Split Percentage', `${project.split_percentage || 5}%`],
       [`${project.split_percentage || 5}% of Remaining`, `PKR ${(remaining * ((project.split_percentage || 5) / 100)).toLocaleString()}`],
       [`${100 - (project.split_percentage || 5)}% of Remaining`, `PKR ${(remaining * ((100 - (project.split_percentage || 5)) / 100)).toLocaleString()}`],
       ['Status', project.status.toUpperCase()],
@@ -1125,15 +1133,33 @@ const ProjectDetail = () => {
     ]);
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Employee Name', 'Amount (PKR)', 'Date', 'Type'], ...salaryData]), 'Salaries Detailed');
 
-    // 4. Expenses Sheet
-    const expData = expenses.map(e => [
-      (e as any).expense_name || 'General',
+    // 4. Internal Expenses Sheet
+    const internalExpData = expenses.filter(e => !e.is_external).map(e => [
+      e.expense_name || 'General',
       e.amount,
-      e.date
+      e.date,
+      e.receipt_url || 'N/A'
     ]);
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Expense Name', 'Amount (PKR)', 'Date'], ...expData]), 'Expenses Detailed');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Expense Name', 'Amount (PKR)', 'Date', 'Receipt File URL'], ...internalExpData]), 'Expenses Detailed');
 
-    // 5. Payments Received Sheet
+    // 5. External Purchases Sheet
+    const externalExpData = expenses.filter(e => e.is_external).map(e => [
+      e.expense_name || 'General',
+      e.amount,
+      e.date,
+      e.receipt_url || 'N/A'
+    ]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Purchase Name', 'Amount (PKR)', 'Date', 'Receipt File URL'], ...externalExpData]), 'External Purchases Detailed');
+
+    // 6. Documents Sheet
+    const docData = docs.map(d => [
+      d.name,
+      d.url,
+      new Date(d.created_at).toLocaleString()
+    ]);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Document Name', 'File URL', 'Uploaded Date'], ...docData]), 'Documents');
+
+    // 7. Payments Received Sheet
     const receivedData = reminders.map(r => [
       r.person_name,
       r.amount,
